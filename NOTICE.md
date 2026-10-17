@@ -22,6 +22,7 @@ Used as a reference for:
 - the dedup key algorithm (`crates/core/src/dedup.rs`, a port of `tools/job_key.py`)
 - the fit-scoring weights, bands and gates (`crates/core/src/scoring.rs`, from `tools/rank_state.py` and `04-job-evaluation.md`)
 - the tailoring rules and ATS read-back idea (`crates/docs`, from `05-cv-templates.md` and `tools/verify_pdf.py`)
+- the cover letter draft, review and revise flow, structure and writing rules (`crates/ai/src/cover.rs`, `crates/docs/src/letter.rs`, from `.claude/commands/apply.md`, `03-writing-style.md` and `06-cover-letter-templates.md`)
 
 ## Inter typeface
 

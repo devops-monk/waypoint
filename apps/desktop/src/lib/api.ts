@@ -21,6 +21,8 @@ import type {
   ResumeState,
   FactIssue,
   Template,
+  LetterDoc,
+  LetterState,
 } from "./types";
 
 // One typed wrapper per Rust command. Argument names follow Tauri's camelCase convention.
@@ -62,6 +64,14 @@ export const api = {
   resumeExport: (jobId: number | null, doc: ResumeDoc, template: Template, path: string) =>
     invoke<{ path: string; ats: AtsReport }>("resume_export", { req: { job_id: jobId, doc, template, path } }),
   resumeAts: (jobId: number | null, doc: ResumeDoc, template: Template) => invoke<AtsReport>("resume_ats", { jobId, doc, template }),
+
+  letterLoad: (jobId: number) => invoke<LetterState>("letter_load", { jobId }),
+  letterWrite: (jobId: number) => invoke<LetterState>("letter_write", { jobId }),
+  letterRender: (jobId: number, doc: LetterDoc, template: Template) =>
+    invoke<{ pages: string[]; issues: FactIssue[]; words: number }>("letter_render", { jobId, doc, template }),
+  letterSave: (jobId: number, doc: LetterDoc, template: Template) => invoke<number>("letter_save", { jobId, doc, template }),
+  letterExport: (jobId: number, doc: LetterDoc, template: Template, path: string) =>
+    invoke<string>("letter_export", { req: { job_id: jobId, doc, template, path } }),
 };
 
 export function errorMessage(e: unknown): string {

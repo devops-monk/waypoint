@@ -47,7 +47,7 @@ export function Sidebar({ view, onNavigate, onAdd, onSearch }: { view: View; onN
         <nav className="flex flex-col gap-0.5">
           <NavItem active={view === "discover"} icon={<Inbox className="size-4" />} label="Discover" count={inbox} onClick={() => onNavigate("discover")} />
           <NavItem active={view === "pipeline"} icon={<SquareKanban className="size-4" />} label="Pipeline" count={active} onClick={() => onNavigate("pipeline")} />
-          <NavItem active={view === "resume"} icon={<FileText className="size-4" />} label="Resume" onClick={() => onNavigate("resume")} />
+          <NavItem active={view === "resume"} icon={<FileText className="size-4" />} label="Documents" onClick={() => onNavigate("resume")} />
           <NavItem active={view === "sources"} icon={<Building2 className="size-4" />} label="Companies" onClick={() => onNavigate("sources")} />
         </nav>
         <p className="mt-5 mb-1 px-2 text-caption font-medium text-ink-3">You</p>

@@ -29,9 +29,9 @@ pub struct Issue {
 }
 
 /// Numbers with their unit, e.g. "40%", "2M", "$3.5M", "10x", "150+".
-static NUMBER: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)[$€£₹]?\d[\d,.]*\s?(?:%|k|m|mm|bn|b|x|\+|million|billion)?").unwrap());
+pub(crate) static NUMBER: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)[$€£₹]?\d[\d,.]*\s?(?:%|k|m|mm|bn|b|x|\+|million|billion)?").unwrap());
 /// Capitalized or mixed-case technical terms: "Kubernetes", "GraphQL", "AWS", "Node.js".
-static TERM: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\b(?:[A-Z][a-z]+[A-Z]\w*|[A-Z]{2,}[a-z]*|[A-Z][a-z]+(?:\.js|\.NET)|[A-Z][a-z]{2,})\b").unwrap());
+pub(crate) static TERM: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\b(?:[A-Z][a-z]+[A-Z]\w*|[A-Z]{2,}[a-z]*|[A-Z][a-z]+(?:\.js|\.NET)|[A-Z][a-z]{2,})\b").unwrap());
 
 fn norm(s: &str) -> String {
     s.trim().to_lowercase().split_whitespace().collect::<Vec<_>>().join(" ")
@@ -43,7 +43,7 @@ fn norm_number(raw: &str) -> String {
     s.replace("million", "m").replace("billion", "b").replace("mm", "m").replace("bn", "b")
 }
 
-fn numbers(text: &str) -> Vec<String> {
+pub(crate) fn numbers(text: &str) -> Vec<String> {
     NUMBER
         .find_iter(text)
         .map(|m| m.as_str())
@@ -57,10 +57,10 @@ fn numbers(text: &str) -> Vec<String> {
 }
 
 /// Words that open sentences or are ordinary English, never treated as claims.
-const COMMON: &[&str] = &["Led", "Built", "Designed", "Developed", "Managed", "Created", "Improved", "Reduced", "Increased", "Launched", "Owned", "Drove", "Delivered", "Implemented", "Migrated", "Shipped", "Worked", "Partnered", "Mentored", "Scaled", "Automated", "Wrote", "Ran", "The", "This", "With", "Across", "Over", "From", "And", "For", "Senior", "Lead", "Staff", "Principal", "Engineer", "Engineering", "Team", "Teams", "Product", "Customer", "Customers", "Data"];
+pub(crate) const COMMON: &[&str] = &["Led", "Built", "Designed", "Developed", "Managed", "Created", "Improved", "Reduced", "Increased", "Launched", "Owned", "Drove", "Delivered", "Implemented", "Migrated", "Shipped", "Worked", "Partnered", "Mentored", "Scaled", "Automated", "Wrote", "Ran", "The", "This", "With", "Across", "Over", "From", "And", "For", "Senior", "Lead", "Staff", "Principal", "Engineer", "Engineering", "Team", "Teams", "Product", "Customer", "Customers", "Data"];
 
 /// All profile text, lowercased, as the evidence corpus.
-fn corpus(p: &Profile) -> String {
+pub(crate) fn corpus(p: &Profile) -> String {
     let mut parts = vec![p.name.clone(), p.headline.clone(), p.summary.clone(), p.location.clone()];
     parts.extend(p.skills.iter().cloned());
     for e in &p.experience {

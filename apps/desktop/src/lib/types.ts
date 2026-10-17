@@ -262,3 +262,50 @@ export interface AtsReport {
   coverage: number;
   problems: string[];
 }
+
+export interface LetterDoc {
+  name: string;
+  contact: string[];
+  date: string;
+  recipient: string[];
+  subject: string;
+  salutation: string;
+  opening: string;
+  highlights: string[];
+  body: string[];
+  closing: string;
+  signature: string;
+  paper: "a4" | "us-letter" | string;
+  lang: string;
+}
+
+export interface LetterRequirement {
+  requirement: string;
+  status: "matched" | "bridged" | "gap" | string;
+  evidence: string;
+}
+
+export interface LetterFinding {
+  area: "grounding" | "requirements" | "company" | "tone" | "structure" | "length" | string;
+  quote: string;
+  problem: string;
+  suggestion: string;
+}
+
+export interface LetterNotes {
+  requirements: LetterRequirement[];
+  review: { verdict: "ready" | "minor_fixes" | "needs_work" | string; overall: string; findings: LetterFinding[] };
+  changes: string[];
+  declined: string[];
+  written_at: string;
+  model: string;
+}
+
+export interface LetterState {
+  doc: LetterDoc;
+  template: Template;
+  notes: LetterNotes | null;
+  saved_at: string | null;
+  exported_to: string | null;
+  fit_warning: string | null;
+}

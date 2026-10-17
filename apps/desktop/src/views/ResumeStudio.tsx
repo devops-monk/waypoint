@@ -1,14 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
 import { save } from "@tauri-apps/plugin-dialog";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import clsx from "clsx";
 import { AlertTriangle, ArrowDown, ArrowUp, Check, FileDown, Plus, RotateCcw, ScanSearch, ShieldCheck, Sparkles, Trash2, Undo2 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Button, Field, IconButton, Input, Panel, Segmented, SectionTitle, Tag, Textarea } from "../components/ui";
+import { AutoTextarea, Button, Field, IconButton, Input, Panel, Segmented, SectionTitle, Tag, Textarea } from "../components/ui";
 import { api, errorMessage } from "../lib/api";
-import { EXITS } from "../lib/format";
-import type { AtsReport, FactIssue, Proposal, ResumeDoc, Template } from "../lib/types";
+import { blocked, CheckBanner, IssueList, PagePreview } from "../components/docs";
+import type { AtsReport, FactIssue, JobSummary, Proposal, ResumeDoc, Template } from "../lib/types";
 
 const csv = (v: string[]) => v.join(", ");
 const fromCsv = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);
@@ -19,8 +18,6 @@ interface Review {
   restored: Record<number, number[]>;
   useSummary: boolean;
 }
-
-const blocked = (issues: FactIssue[]) => issues.some((i) => i.severity === "block");
 
 function applyReview(p: Proposal, r: Review): ResumeDoc {
   return {
@@ -34,20 +31,6 @@ function applyReview(p: Proposal, r: Review): ResumeDoc {
       return { ...role, bullets: [...bullets, ...restored] };
     }),
   };
-}
-
-function IssueList({ issues }: { issues: FactIssue[] }) {
-  if (!issues.length) return null;
-  return (
-    <ul className="mt-1.5 flex flex-col gap-1">
-      {issues.map((i, k) => (
-        <li key={k} className={clsx("flex items-start gap-1.5 text-caption", i.severity === "block" ? "text-coral" : "text-amber")}>
-          <AlertTriangle className="mt-px size-3 shrink-0" />
-          {i.message}
-        </li>
-      ))}
-    </ul>
-  );
 }
 
 function ReviewPanel({ proposal, review, setReview, onApply, onDiscard }: { proposal: Proposal; review: Review; setReview: (r: Review) => void; onApply: () => void; onDiscard: () => void }) {
@@ -180,13 +163,7 @@ function Editor({ doc, setDoc, issues }: { doc: ResumeDoc; setDoc: (d: ResumeDoc
             {role.bullets.map((b, bi) => (
               <div key={bi}>
                 <div className="group flex items-start gap-1">
-                  <Textarea
-                    rows={Math.max(1, Math.ceil(b.length / 62))}
-                    style={{ minHeight: 0 }}
-                    value={b}
-                    onChange={(e) => setRole(ri, role.bullets.map((x, i) => (i === bi ? e.target.value : x)))}
-                    className="flex-1 resize-none py-1.5 text-callout"
-                  />
+                  <AutoTextarea value={b} onChange={(e) => setRole(ri, role.bullets.map((x, i) => (i === bi ? e.target.value : x)))} className="flex-1 text-callout" />
                   <div className="flex pt-1 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
                     <IconButton label="Move up" className="size-6" disabled={bi === 0} onClick={() => { const n = [...role.bullets]; [n[bi - 1], n[bi]] = [n[bi], n[bi - 1]]; setRole(ri, n); }}><ArrowUp className="size-3" /></IconButton>
                     <IconButton label="Move down" className="size-6" disabled={bi === role.bullets.length - 1} onClick={() => { const n = [...role.bullets]; [n[bi + 1], n[bi]] = [n[bi], n[bi + 1]]; setRole(ri, n); }}><ArrowDown className="size-3" /></IconButton>
@@ -245,8 +222,7 @@ function AtsPanel({ report }: { report: AtsReport }) {
   );
 }
 
-export function ResumeStudio({ initialJob }: { initialJob: number | null }) {
-  const [jobId, setJobId] = useState<number | null>(initialJob);
+export function ResumeStudio({ jobId, job, leading }: { jobId: number | null; job?: JobSummary; leading: ReactNode }) {
   const [doc, setDoc] = useState<ResumeDoc | null>(null);
   const [template, setTemplate] = useState<Template>("clean");
   const [savedAt, setSavedAt] = useState<string | null>(null);
@@ -259,14 +235,6 @@ export function ResumeStudio({ initialJob }: { initialJob: number | null }) {
   const [ats, setAts] = useState<AtsReport | null>(null);
   const [busy, setBusy] = useState<"tailor" | "export" | "ats" | "save" | null>(null);
   const renderSeq = useRef(0);
-
-  useEffect(() => setJobId(initialJob), [initialJob]);
-
-  const { data: jobs = [] } = useQuery({
-    queryKey: ["jobs", "resume-picker"],
-    queryFn: () => api.listJobs({ statuses: ["saved", "evaluated", "applied", "responded", "assessment", "interview", "offer"], limit: 300 }),
-  });
-  const job = jobs.find((j) => j.id === jobId);
 
   useEffect(() => {
     let live = true;
@@ -370,23 +338,11 @@ export function ResumeStudio({ initialJob }: { initialJob: number | null }) {
   };
 
   const blocks = issues.filter((i) => i.severity === "block").length;
-  const warns = issues.length - blocks;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="drag flex h-[52px] shrink-0 items-center gap-3 border-b border-hairline px-4" data-tauri-drag-region>
-        <h1 className="text-headline font-semibold" data-tauri-drag-region>Resume</h1>
-        <select
-          value={jobId ?? ""}
-          onChange={(e) => setJobId(e.target.value ? Number(e.target.value) : null)}
-          className="h-7 max-w-[300px] rounded-control bg-surface px-2 text-callout text-ink shadow-[0_0_0_0.5px_var(--color-hairline),0_1px_1.5px_rgb(0_0_0/0.08)] outline-none"
-          aria-label="Resume for"
-        >
-          <option value="">Base resume</option>
-          {jobs.filter((j) => !EXITS.includes(j.status)).map((j) => (
-            <option key={j.id} value={j.id}>{j.title} at {j.company}</option>
-          ))}
-        </select>
+        {leading}
         <div className="flex-1" data-tauri-drag-region />
         <Segmented<Template> value={template} onChange={(t) => { setTemplate(t); setDirty(true); }} options={[{ value: "clean", label: "Clean" }, { value: "modern", label: "Modern" }]} />
         {doc && (
@@ -412,14 +368,7 @@ export function ResumeStudio({ initialJob }: { initialJob: number | null }) {
             </div>
           ) : (
             <>
-              <div className={clsx("mb-5 flex items-center gap-2 rounded-[9px] px-3 py-2 text-callout", blocks ? "bg-coral/10 text-coral" : warns ? "bg-amber/10 text-amber" : "bg-teal/10 text-teal")}>
-                {blocks ? <AlertTriangle className="size-3.5" /> : <ShieldCheck className="size-3.5" />}
-                {blocks
-                  ? `${blocks} ${blocks === 1 ? "claim isn't" : "claims aren't"} in your profile. Fix ${blocks === 1 ? "it" : "them"} to export.`
-                  : warns
-                    ? `Every fact checks out. ${warns} ${warns === 1 ? "term is" : "terms are"} worth a second look.`
-                    : "Every fact traces back to your profile."}
-              </div>
+              <CheckBanner issues={issues} clean="Every fact traces back to your profile." />
               {proposal ? (
                 <ReviewPanel
                   proposal={proposal}
@@ -448,23 +397,7 @@ export function ResumeStudio({ initialJob }: { initialJob: number | null }) {
           )}
         </div>
 
-        <div className="scroll min-w-0 flex-1 bg-fill">
-          {renderError ? (
-            <p className="m-8 rounded-[9px] bg-coral/10 p-3 text-callout text-coral">{renderError}</p>
-          ) : (
-            <div className="mx-auto flex max-w-[720px] flex-col gap-6 px-8 py-8">
-              {pages.map((svg, i) => (
-                <div
-                  key={i}
-                  className="overflow-hidden rounded-[3px] bg-white shadow-[0_0_0_0.5px_rgb(0_0_0/0.08),0_8px_24px_rgb(0_0_0/0.12)] [&>svg]:block [&>svg]:h-auto [&>svg]:w-full"
-                  // Typst output: the resume as vector pages, text drawn as glyph paths.
-                  dangerouslySetInnerHTML={{ __html: svg }}
-                />
-              ))}
-              {pages.length > 1 && <p className="text-center text-caption text-ink-3">{pages.length} pages</p>}
-            </div>
-          )}
-        </div>
+        <PagePreview pages={pages} error={renderError} />
       </div>
     </div>
   );

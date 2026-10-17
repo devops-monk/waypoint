@@ -134,3 +134,16 @@ pub struct StoredResume {
     pub file_path: Option<String>,
     pub created_at: DateTime<Utc>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StoredLetter {
+    pub id: i64,
+    pub job_id: Option<i64>,
+    pub template: String,
+    /// The letter document as JSON (owned by the docs crate).
+    pub data: serde_json::Value,
+    /// Requirement coverage and the reviewer's notes, when the AI wrote this version.
+    pub notes: Option<serde_json::Value>,
+    pub file_path: Option<String>,
+    pub created_at: DateTime<Utc>,
+}

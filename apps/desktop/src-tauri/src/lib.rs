@@ -1,4 +1,5 @@
 mod commands;
+mod letter_cmds;
 mod resume_cmds;
 mod secrets;
 
@@ -77,6 +78,11 @@ pub fn run() {
             resume_cmds::resume_save,
             resume_cmds::resume_export,
             resume_cmds::resume_ats,
+            letter_cmds::letter_load,
+            letter_cmds::letter_write,
+            letter_cmds::letter_render,
+            letter_cmds::letter_save,
+            letter_cmds::letter_export,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Waypoint");

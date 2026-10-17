@@ -64,7 +64,7 @@ export function CommandPalette({ open, onClose, onNavigate, onOpenJob, onAdd }: 
                 <Command.Group heading="Go to" className="[&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-caption [&_[cmdk-group-heading]]:text-ink-3">
                   <Command.Item onSelect={() => run(() => onNavigate("discover"))} className={item}><Inbox className="size-4" />Discover</Command.Item>
                   <Command.Item onSelect={() => run(() => onNavigate("pipeline"))} className={item}><SquareKanban className="size-4" />Pipeline</Command.Item>
-                  <Command.Item onSelect={() => run(() => onNavigate("resume"))} className={item}><FileText className="size-4" />Resume</Command.Item>
+                  <Command.Item onSelect={() => run(() => onNavigate("resume"))} className={item}><FileText className="size-4" />Resume and cover letters</Command.Item>
                   <Command.Item onSelect={() => run(() => onNavigate("sources"))} className={item}><Building2 className="size-4" />Companies</Command.Item>
                   <Command.Item onSelect={() => run(() => onNavigate("profile"))} className={item}><UserRound className="size-4" />Profile</Command.Item>
                   <Command.Item onSelect={() => run(() => onNavigate("settings"))} className={item}><Settings2 className="size-4" />Settings</Command.Item>

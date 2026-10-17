@@ -325,7 +325,12 @@ impl Db {
 
     /// Total tokens spent per model, for the cost-transparency panel.
     pub async fn token_usage(&self) -> Result<Vec<(String, i64, i64, i64)>> {
-        let rows = sqlx::query("SELECT model, COUNT(*) AS n, SUM(input_tokens) AS i, SUM(output_tokens) AS o FROM evaluation GROUP BY model")
+        let rows = sqlx::query(
+            "SELECT model, COUNT(*) AS n, SUM(input_tokens) AS i, SUM(output_tokens) AS o FROM (
+                SELECT model, input_tokens, output_tokens FROM evaluation
+                UNION ALL SELECT model, input_tokens, output_tokens FROM ai_call
+             ) GROUP BY model ORDER BY n DESC",
+        )
             .fetch_all(&self.pool)
             .await?;
         Ok(rows.iter().map(|r| (r.get("model"), r.get("n"), r.get("i"), r.get("o"))).collect())
@@ -427,6 +432,51 @@ impl Db {
         }))
     }
 
+    // ── Cover letters ───────────────────────────────────────────────────
+
+    pub async fn save_cover_letter(&self, job_id: Option<i64>, template: &str, data: &serde_json::Value, notes: Option<&serde_json::Value>, file_path: Option<&str>) -> Result<i64> {
+        let id = sqlx::query_scalar("INSERT INTO cover_letter (job_id, template, data, notes, file_path, created_at) VALUES (?, ?, ?, ?, ?, ?) RETURNING id")
+            .bind(job_id)
+            .bind(template)
+            .bind(data.to_string())
+            .bind(notes.map(|n| n.to_string()))
+            .bind(file_path)
+            .bind(Utc::now().to_rfc3339())
+            .fetch_one(&self.pool)
+            .await?;
+        Ok(id)
+    }
+
+    pub async fn latest_cover_letter(&self, job_id: i64) -> Result<Option<StoredLetter>> {
+        let row = sqlx::query("SELECT * FROM cover_letter WHERE job_id = ? ORDER BY created_at DESC, id DESC LIMIT 1")
+            .bind(job_id)
+            .fetch_optional(&self.pool)
+            .await?;
+        Ok(row.map(|r| StoredLetter {
+            id: r.get("id"),
+            job_id: r.get("job_id"),
+            template: r.get("template"),
+            data: serde_json::from_str(r.get::<String, _>("data").as_str()).unwrap_or_default(),
+            notes: r.get::<Option<String>, _>("notes").and_then(|n| serde_json::from_str(&n).ok()),
+            file_path: r.get("file_path"),
+            created_at: ts_req(r.get("created_at")),
+        }))
+    }
+
+    /// Record token usage for an AI call that isn't an evaluation.
+    pub async fn record_ai_call(&self, kind: &str, job_id: Option<i64>, model: &str, input_tokens: i64, output_tokens: i64) -> Result<()> {
+        sqlx::query("INSERT INTO ai_call (kind, job_id, model, input_tokens, output_tokens, created_at) VALUES (?, ?, ?, ?, ?, ?)")
+            .bind(kind)
+            .bind(job_id)
+            .bind(model)
+            .bind(input_tokens)
+            .bind(output_tokens)
+            .bind(Utc::now().to_rfc3339())
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
     // ── Profile & settings ──────────────────────────────────────────────
 
     pub async fn current_profile(&self) -> Result<(i64, Profile)> {
@@ -506,6 +556,23 @@ mod tests {
         assert_eq!(db.list_jobs(&JobFilter { min_score: Some(50.0), ..Default::default() }).await.unwrap().len(), 1);
         let applied = db.list_jobs(&JobFilter { statuses: Some(vec![Status::Applied]), ..Default::default() }).await.unwrap();
         assert!(applied.is_empty());
+    }
+
+    #[tokio::test]
+    async fn cover_letters_keep_notes_and_usage_counts_every_call() {
+        let db = Db::in_memory().await.unwrap();
+        db.upsert_jobs(&[draft("A", "https://x.test/1")]).await.unwrap();
+        let job = db.list_jobs(&JobFilter::default()).await.unwrap()[0].id;
+        assert!(db.latest_cover_letter(job).await.unwrap().is_none());
+        db.save_cover_letter(Some(job), "clean", &serde_json::json!({"v": 1}), Some(&serde_json::json!({"verdict": "ready"})), None).await.unwrap();
+        db.save_cover_letter(Some(job), "clean", &serde_json::json!({"v": 2}), None, Some("/tmp/l.pdf")).await.unwrap();
+        let l = db.latest_cover_letter(job).await.unwrap().unwrap();
+        assert_eq!(l.data["v"], 2);
+        assert!(l.notes.is_none());
+        db.record_ai_call("cover_draft", Some(job), "claude-opus-5-5", 1000, 400).await.unwrap();
+        db.record_ai_call("cover_review", Some(job), "claude-opus-5-5", 1200, 300).await.unwrap();
+        let usage = db.token_usage().await.unwrap();
+        assert_eq!(usage, vec![("claude-opus-5-5".to_string(), 2, 2200, 700)]);
     }
 
     #[tokio::test]

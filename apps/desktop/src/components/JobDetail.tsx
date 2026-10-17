@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import clsx from "clsx";
-import { AlertTriangle, Bookmark, Check, ExternalLink, FileText, Sparkles, Star, X } from "lucide-react";
+import { AlertTriangle, Bookmark, Check, ExternalLink, FileText, Mail, Sparkles, Star, X } from "lucide-react";
+import type { DocKind } from "../views/Documents";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -113,7 +114,7 @@ function EvaluationPanel({ evaluation, score, band, model }: { evaluation: Evalu
   );
 }
 
-export function JobDetail({ jobId, onTriage, onTailor }: { jobId: number; onTriage?: (s: Status) => void; onTailor?: () => void }) {
+export function JobDetail({ jobId, onTriage, onOpenDocs }: { jobId: number; onTriage?: (s: Status) => void; onOpenDocs?: (kind: DocKind) => void }) {
   const qc = useQueryClient();
   const { data: job } = useQuery({ queryKey: ["job", jobId], queryFn: () => api.getJob(jobId) });
   const { data: ev } = useQuery({ queryKey: ["evaluation", jobId], queryFn: () => api.latestEvaluation(jobId) });
@@ -195,13 +196,21 @@ export function JobDetail({ jobId, onTriage, onTailor }: { jobId: number; onTria
                 <Button size="sm" variant="plain" busy={evaluate.isPending} icon={<Sparkles className="size-3.5" />} onClick={() => evaluate.mutate()}>
                   Score again
                 </Button>
-                {onTailor && (
-                  <Button size="sm" variant="primary" icon={<FileText className="size-3.5" />} onClick={async () => {
-                    if (job.status === "new") await move("saved");
-                    onTailor();
-                  }}>
-                    Tailor resume
-                  </Button>
+                {onOpenDocs && (
+                  <>
+                    <Button size="sm" icon={<Mail className="size-3.5" />} onClick={async () => {
+                      if (job.status === "new") await move("saved");
+                      onOpenDocs("letter");
+                    }}>
+                      Cover letter
+                    </Button>
+                    <Button size="sm" variant="primary" icon={<FileText className="size-3.5" />} onClick={async () => {
+                      if (job.status === "new") await move("saved");
+                      onOpenDocs("resume");
+                    }}>
+                      Tailor resume
+                    </Button>
+                  </>
                 )}
               </div>
             </>

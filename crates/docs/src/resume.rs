@@ -57,6 +57,14 @@ impl Template {
             Template::Modern => include_str!("../templates/modern.typ"),
         }
     }
+
+    /// The cover letter in the same family, so resume and letter match.
+    pub fn letter_source(self) -> &'static str {
+        match self {
+            Template::Clean => include_str!("../templates/letter_clean.typ"),
+            Template::Modern => include_str!("../templates/letter_modern.typ"),
+        }
+    }
 }
 
 impl ResumeDoc {

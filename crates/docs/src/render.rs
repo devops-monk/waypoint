@@ -1,4 +1,4 @@
-//! Embedded Typst: compiles a template plus the resume as JSON, with bundled fonts and
+//! Embedded Typst: compiles a template plus the document as JSON, with bundled fonts and
 //! no file system or network access.
 
 use std::sync::OnceLock;
@@ -13,6 +13,7 @@ use typst::text::{Font, FontBook};
 use typst::utils::LazyHash;
 use typst::{Library, LibraryExt, World};
 
+use crate::letter::LetterDoc;
 use crate::resume::{ResumeDoc, Template};
 
 struct Fonts {
@@ -79,16 +80,24 @@ impl World for ResumeWorld {
 }
 
 fn diagnostics(errors: &[SourceDiagnostic]) -> anyhow::Error {
-    anyhow!("couldn't lay out the resume: {}", errors.iter().map(|e| e.message.to_string()).collect::<Vec<_>>().join("; "))
+    anyhow!("couldn't lay out the document: {}", errors.iter().map(|e| e.message.to_string()).collect::<Vec<_>>().join("; "))
 }
 
 pub fn compile(doc: &ResumeDoc, template: Template) -> Result<PagedDocument> {
+    compile_source(template.source(), serde_json::to_vec(doc)?)
+}
+
+pub fn compile_letter(letter: &LetterDoc, template: Template) -> Result<PagedDocument> {
+    compile_source(template.letter_source(), serde_json::to_vec(letter)?)
+}
+
+fn compile_source(source: &str, data: Vec<u8>) -> Result<PagedDocument> {
     let file = |name: &str| FileId::new(RootedPath::new(VirtualRoot::Project, VirtualPath::new(name).expect("static path")));
     let main_id = file("main.typ");
     let world = ResumeWorld {
-        main: Source::new(main_id, template.source().to_string()),
+        main: Source::new(main_id, source.to_string()),
         data_id: file("data.json"),
-        data: Bytes::new(serde_json::to_vec(doc)?),
+        data: Bytes::new(data),
     };
     typst::compile::<PagedDocument>(&world).output.map_err(|e| diagnostics(e.as_slice()))
 }

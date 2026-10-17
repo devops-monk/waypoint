@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { FitBadge } from "../components/FitDial";
 import { JobDetail } from "../components/JobDetail";
 import type { View } from "../components/Sidebar";
+import type { DocKind } from "./Documents";
 import { Button, Input, Segmented, Toggle } from "../components/ui";
 import { api, errorMessage } from "../lib/api";
 import { ageInDays, formatSalary, relativeTime } from "../lib/format";
@@ -115,7 +116,7 @@ function GettingStarted({ onGoTo, onScan, scanning }: { onGoTo: (v: View) => voi
   );
 }
 
-export function Discover({ focusJob, onFocusHandled, onGoTo, onTailor }: { focusJob: number | null; onFocusHandled: () => void; onGoTo: (v: View) => void; onTailor: (id: number) => void }) {
+export function Discover({ focusJob, onFocusHandled, onGoTo, onOpenDocs }: { focusJob: number | null; onFocusHandled: () => void; onGoTo: (v: View) => void; onOpenDocs: (id: number, kind: DocKind) => void }) {
   const qc = useQueryClient();
   const [scope, setScope] = useState<Scope>("inbox");
   const [query, setQuery] = useState("");
@@ -239,7 +240,7 @@ export function Discover({ focusJob, onFocusHandled, onGoTo, onTailor }: { focus
             {jobs.length > 0 && <p className="px-3 py-3 text-caption text-ink-3">J and K to move, S to save, X to skip</p>}
           </div>
           <div className="min-w-0 flex-1">
-            {selected != null ? <JobDetail key={selected} jobId={selected} onTriage={triage} onTailor={() => onTailor(selected)} /> : <div className="flex h-full items-center justify-center text-callout text-ink-3">Select a job</div>}
+            {selected != null ? <JobDetail key={selected} jobId={selected} onTriage={triage} onOpenDocs={(kind) => onOpenDocs(selected, kind)} /> : <div className="flex h-full items-center justify-center text-callout text-ink-3">Select a job</div>}
           </div>
         </div>
       )}

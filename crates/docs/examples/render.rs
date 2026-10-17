@@ -1,7 +1,7 @@
-//! Render sample resumes: `cargo run -p waypoint-docs --example render -- <out-dir>`
+//! Render sample resumes and cover letters: `cargo run -p waypoint-docs --example render -- <out-dir>`
 use waypoint_core::Profile;
 use waypoint_core::profile::{Education, Experience, Language};
-use waypoint_docs::{ResumeDoc, Template, render};
+use waypoint_docs::{LetterDoc, ResumeDoc, Template, render};
 
 fn main() {
     let out = std::env::args().nth(1).unwrap_or_else(|| ".".into());
@@ -32,5 +32,28 @@ fn main() {
         std::fs::write(format!("{out}/{name}.pdf"), render::pdf(&d).unwrap()).unwrap();
         std::fs::write(format!("{out}/{name}.svg"), &render::svg_pages(&d)[0]).unwrap();
         println!("{name}: {} page(s)", d.pages().len());
+    }
+
+    let mut letter = LetterDoc::with_header(&doc, "en");
+    letter.recipient = vec!["Hiring team".into(), "Supabase".into(), "Remote".into()];
+    letter.subject = "Senior backend engineer with eight years of realtime systems in Elixir".into();
+    letter.salutation = "Dear Supabase hiring team,".into();
+    letter.opening = "Supabase Realtime is an Elixir service that has to fan out database changes to a very large number of clients, and that is the problem I have spent the last four years on at Acme Chat. I'm applying for the Senior Backend Engineer role on the Realtime team.".into();
+    letter.highlights = vec![
+        "Built a Phoenix Channels service handling 2M concurrent connections with p99 delivery under 120 ms".into(),
+        "Led the Postgres 12 to 15 migration across 40 databases with zero downtime".into(),
+        "Cut reconciliation time from 6 hours to 25 minutes by moving batch jobs to Kafka streams".into(),
+    ];
+    letter.body = vec![
+        "In the first months I would focus on the parts of Realtime that page people: connection churn, backpressure when a large table changes at once, and the metrics that tell you which of the two you're looking at. At Acme Chat I owned exactly that, from design docs to on-call.".into(),
+        "Your posting asks for open-source experience. Most of my work has been in private repositories, so I'd be learning the public review rhythm, but I've mentored four engineers through code review and enjoy doing it in the open.".into(),
+        "I would welcome a conversation about the role.".into(),
+    ];
+    letter.closing = "Kind regards,".into();
+    for (t, name) in [(Template::Clean, "letter_clean"), (Template::Modern, "letter_modern")] {
+        let d = render::compile_letter(&letter, t).expect("compile letter");
+        std::fs::write(format!("{out}/{name}.pdf"), render::pdf(&d).unwrap()).unwrap();
+        std::fs::write(format!("{out}/{name}.svg"), &render::svg_pages(&d)[0]).unwrap();
+        println!("{name}: {} page(s), {} words", d.pages().len(), letter.body_words());
     }
 }

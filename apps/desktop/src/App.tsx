@@ -8,14 +8,14 @@ import { Pipeline } from "./views/Pipeline";
 import { Sources } from "./views/Sources";
 import { ProfileView } from "./views/Profile";
 import { Settings } from "./views/Settings";
-import { ResumeStudio } from "./views/ResumeStudio";
+import { Documents, type DocKind } from "./views/Documents";
 
 export default function App() {
   const [view, setView] = useState<View>("discover");
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [focusJob, setFocusJob] = useState<number | null>(null);
-  const [resumeJob, setResumeJob] = useState<number | null>(null);
+  const [docTarget, setDocTarget] = useState<{ jobId: number | null; kind: DocKind }>({ jobId: null, kind: "resume" });
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -43,8 +43,8 @@ export default function App() {
     setView("discover");
   };
 
-  const tailorFor = (id: number) => {
-    setResumeJob(id);
+  const openDocs = (id: number, kind: DocKind) => {
+    setDocTarget({ jobId: id, kind });
     setView("resume");
   };
 
@@ -61,9 +61,9 @@ export default function App() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.12 }}
           >
-            {view === "discover" && <Discover focusJob={focusJob} onFocusHandled={() => setFocusJob(null)} onGoTo={setView} onTailor={tailorFor} />}
+            {view === "discover" && <Discover focusJob={focusJob} onFocusHandled={() => setFocusJob(null)} onGoTo={setView} onOpenDocs={openDocs} />}
             {view === "pipeline" && <Pipeline onOpenJob={openJob} />}
-            {view === "resume" && <ResumeStudio initialJob={resumeJob} />}
+            {view === "resume" && <Documents target={docTarget} />}
             {view === "sources" && <Sources />}
             {view === "profile" && <ProfileView />}
             {view === "settings" && <Settings />}

@@ -1,11 +1,14 @@
-//! Resume documents: the model, Typst rendering, the fact gate and the ATS check.
+//! Application documents: resume and cover letter models, Typst rendering, the fact gate
+//! and the ATS check.
 
 pub mod ats;
 pub mod factgate;
+pub mod letter;
 pub mod render;
 pub mod resume;
 pub mod tailor;
 
+pub use letter::LetterDoc;
 pub use resume::{ResumeDoc, ResumeEducation, ResumeRole, Template};
 
 #[cfg(test)]
@@ -47,6 +50,27 @@ mod tests {
             assert!(report.missing_sections.is_empty(), "{t:?} {report:?}");
             assert!(report.companies_in_order, "{t:?}");
             assert_eq!(report.coverage, 0.5);
+        }
+    }
+
+    #[test]
+    fn both_letter_templates_fit_one_page_and_read_back() {
+        let resume = sample();
+        let mut l = LetterDoc::with_header(&resume, "en");
+        l.recipient = vec!["Hiring team".into(), "Globex".into(), "Copenhagen".into()];
+        l.subject = "Backend engineer for Globex's payments platform".into();
+        l.salutation = "Dear Globex hiring team,".into();
+        l.opening = "Globex is rebuilding its payments platform in Rust, and that is the work I have done for the last four years. ".repeat(2);
+        l.highlights = vec!["Cut p99 latency by 40% on the Acme API".into(), "Led a team of 5 through a database migration".into(), "Built the billing pipeline at Globex".into()];
+        l.body = vec!["In the first months I would focus on the reliability of your settlement services. ".repeat(4), "I would welcome a conversation about the role.".into()];
+        l.closing = "Kind regards,".into();
+        for t in [Template::Clean, Template::Modern] {
+            let compiled = render::compile_letter(&l, t).unwrap_or_else(|e| panic!("{t:?}: {e}"));
+            assert_eq!(compiled.pages().len(), 1, "{t:?}");
+            let text = pdf_extract::extract_text_from_mem(&render::pdf(&compiled).unwrap()).unwrap();
+            for needle in ["Ada Lovelace", "Dear Globex hiring team", "Cut p99 latency", "Kind regards"] {
+                assert!(text.contains(needle), "{t:?} missing {needle}");
+            }
         }
     }
 

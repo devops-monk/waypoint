@@ -235,6 +235,7 @@ pub async fn import_resume(state: State<'_, AppState>, path: Option<String>, tex
     let (system, user) = prompts::profile_prompt(&resume);
     let req = waypoint_ai::JsonRequest { system: &system, user: &user, schema_name: "candidate_profile", schema: &schema, max_tokens: 16000 };
     let resp = state.llm.complete_json(&cfg, key.as_deref(), &req).await.map_err(err)?;
+    let _ = state.db.record_ai_call("profile_import", None, &resp.model, resp.input_tokens, resp.output_tokens).await;
     let mut extracted: Profile = serde_json::from_value(resp.value).map_err(|e| format!("Unexpected profile shape: {e}"))?;
     // Keep preferences the user already set; the resume never carries them.
     extracted.preferences = state.db.current_profile().await.map_err(err)?.1.preferences;

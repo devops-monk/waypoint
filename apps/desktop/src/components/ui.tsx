@@ -1,4 +1,4 @@
-import { forwardRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from "react";
+import { forwardRef, useLayoutEffect, useRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from "react";
 import clsx from "clsx";
 import { Loader2 } from "lucide-react";
 
@@ -52,6 +52,24 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
   return <textarea ref={ref} className={clsx(fieldBase, "min-h-24 resize-y py-2 leading-relaxed", className)} {...rest} />;
 });
 
+/** A textarea that grows with its text, for short editable passages like bullets. */
+export function AutoTextarea({ className, value, ...rest }: TextareaHTMLAttributes<HTMLTextAreaElement> & { value: string }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fit = () => {
+      el.style.height = "auto";
+      el.style.height = `${el.scrollHeight + 1}px`;
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [value]);
+  return <textarea ref={ref} rows={1} value={value} className={clsx(fieldBase, "resize-none overflow-hidden py-1.5 leading-relaxed", className)} {...rest} />;
+}
+
 export function Field({ label, hint, children, className }: { label: string; hint?: ReactNode; children: ReactNode; className?: string }) {
   return (
     <label className={clsx("flex flex-col gap-1.5", className)}>
@@ -91,7 +109,7 @@ export function Segmented<T extends string>({ value, options, onChange }: { valu
           aria-selected={o.value === value}
           onClick={() => onChange(o.value)}
           className={clsx(
-            "h-6 rounded-[6px] px-3 text-callout font-medium transition-all duration-200",
+            "h-6 rounded-[6px] px-3 text-callout font-medium whitespace-nowrap transition-all duration-200",
             o.value === value ? "bg-surface text-ink shadow-[0_0_0_0.5px_var(--color-hairline),0_1px_2px_rgb(0_0_0/0.1)]" : "text-ink-2 hover:text-ink",
           )}
         >

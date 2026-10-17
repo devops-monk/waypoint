@@ -2,7 +2,7 @@
 
 An honest, private job search copilot for macOS, Windows and Linux. It finds real jobs on company job boards, scores how well you fit using only facts from your profile, and tracks every application. Your data stays on your computer, and AI calls use your own key.
 
-## What works today (Phase 0 + Phase 1 core)
+## What works today
 
 - **Companies:** follow companies by pasting a careers-page link (Greenhouse, Lever, Ashby) or choosing from 110 suggestions. You can also watch Remotive for remote roles by keyword. Boards that fail or go empty are flagged.
 - **Discover:** an inbox of new roles ranked by fit, with keyboard triage (J/K to move, S to save, X to skip), a remote filter, search, and a warning on old postings.
@@ -12,8 +12,11 @@ An honest, private job search copilot for macOS, Windows and Linux. It finds rea
   - **Tailor for this job:** the AI reorders and rewords your bullets for a specific posting. You accept or reject each change, and bullets it left out can be added back.
   - **Fact check:** companies, titles and dates are always copied from your profile. Any number or skill that isn't in your profile blocks export, and unfamiliar terms are flagged for a second look.
   - **ATS check:** the exported PDF is read back the way an applicant tracking system would, checking your name, section headings, role order, page count and keyword coverage for the posting. Every exported version is saved against its job.
+- **Cover letters:** written for one job in three passes. A drafter writes, an independent reviewer acting as the hiring manager checks every claim against your profile and critiques it, then the draft is revised. You see the reviewer's notes, what changed, what was turned down and why, and how the letter handles each requirement in the posting (matched, honestly bridged, or a gap).
+  - **Checks:** a number that isn't in your profile or the posting blocks export. A skill borrowed from the posting and claimed as yours is flagged, as are dashes, stock phrases and letters outside 250 to 350 words or over one page.
+  - The letter uses the same header and template family as your resume, writes in the posting's language, and dates itself the local way. Every AI-written version is saved straight away with its notes.
 - **Profile:** import a PDF, .txt or .md resume, or paste the text. The AI drafts your profile, and you review it before saving.
-- **Settings:** bring your own key for Claude, OpenAI or OpenRouter, or run free and fully local with Ollama. Keys live in the OS keychain. A usage panel shows token spend.
+- **Settings:** bring your own key for Claude, OpenAI or OpenRouter, or run free and fully local with Ollama. Keys live in the OS keychain. A usage panel shows token spend across every AI call.
 - **Everywhere:** ⌘K command palette, ⌘N to add any job by hand (for example from LinkedIn), ⌘1–6 to switch views, light and dark mode, and native window translucency on macOS and Windows.
 
 ## Layout
@@ -22,7 +25,7 @@ An honest, private job search copilot for macOS, Windows and Linux. It finds rea
 crates/core      domain model, SQLite storage + migrations, dedup keys, scoring
 crates/sources   job sources: Greenhouse, Lever (US/EU), Ashby, Remotive; SSRF-guarded HTTP
 crates/ai        Anthropic + OpenAI-compatible adapters, structured-output prompts
-crates/docs      resume model, Typst templates + renderer, fact gate, ATS read-back, tailoring
+crates/docs      resume + cover letter models, Typst templates + renderer, fact gate, ATS read-back, tailoring
 apps/desktop     Tauri 2 shell (src-tauri/) and React 19 UI (src/)
 ```
 
@@ -38,7 +41,7 @@ cargo test --workspace  # from the repo root: Rust unit tests
 pnpm typecheck          # frontend types
 ```
 
-Render sample resumes (PDF + SVG) without the UI:
+Render sample resumes and cover letters (PDF + SVG) without the UI:
 
 ```sh
 cargo run -p waypoint-docs --example render -- /tmp

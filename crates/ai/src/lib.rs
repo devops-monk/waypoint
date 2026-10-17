@@ -1,6 +1,7 @@
 //! Bring-your-own-key LLM layer. Every call asks for JSON that matches a schema, so the
 //! app never parses free-form prose, and every call reports token usage for the cost panel.
 
+pub mod cover;
 mod anthropic;
 mod openai;
 pub mod prompts;

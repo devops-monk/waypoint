@@ -18,7 +18,7 @@ fn err(e: impl std::fmt::Display) -> String {
     e.to_string()
 }
 
-fn template_id(t: Template) -> &'static str {
+pub(crate) fn template_id(t: Template) -> &'static str {
     match t {
         Template::Clean => "clean",
         Template::Modern => "modern",
@@ -93,6 +93,7 @@ pub async fn resume_tailor(state: State<'_, AppState>, job_id: i64) -> CmdResult
     let (system, user) = prompts::tailor_prompt(&profile, &job, &keywords);
     let req = waypoint_ai::JsonRequest { system: &system, user: &user, schema_name: "resume_tailoring", schema: &schema, max_tokens: 16000 };
     let resp = state.llm.complete_json(&cfg, key.as_deref(), &req).await.map_err(err)?;
+    let _ = state.db.record_ai_call("tailor", Some(job_id), &resp.model, resp.input_tokens, resp.output_tokens).await;
     let plan: TailorPlan = serde_json::from_value(resp.value).map_err(|e| format!("Unexpected tailoring shape: {e}"))?;
     // Start from the user's current base resume so contact details and paper size carry over.
     let base = match state.db.latest_resume(None).await.map_err(err)? {
