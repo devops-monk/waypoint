@@ -2,15 +2,19 @@
 
 An honest, private job search copilot for macOS, Windows and Linux. It finds real jobs on company job boards, scores how well you fit using only facts from your profile, and tracks every application. Your data stays on your computer, and AI calls use your own key.
 
-## What works today (Phase 0 + early Phase 1)
+## What works today (Phase 0 + Phase 1 core)
 
 - **Companies:** follow companies by pasting a careers-page link (Greenhouse, Lever, Ashby) or choosing from 110 suggestions. You can also watch Remotive for remote roles by keyword. Boards that fail or go empty are flagged.
 - **Discover:** an inbox of new roles ranked by fit, with keyboard triage (J/K to move, S to save, X to skip), a remote filter, search, and a warning on old postings.
 - **Fit scoring:** gates for eligibility, language and location, then four weighted dimensions (skills, experience, culture, career). Also covers strengths and gaps, ghost-job signals, and the keywords a posting screens for. The model scores each dimension and the weighted total is computed in code, so the number is reproducible.
 - **Pipeline:** a drag-and-drop board from Saved to Hired, with closed roles kept to the side.
+- **Resume Studio:** a live preview of your resume in two templates (Clean, Modern), on A4 or US Letter, built with embedded Typst so no LaTeX install is needed.
+  - **Tailor for this job:** the AI reorders and rewords your bullets for a specific posting. You accept or reject each change, and bullets it left out can be added back.
+  - **Fact check:** companies, titles and dates are always copied from your profile. Any number or skill that isn't in your profile blocks export, and unfamiliar terms are flagged for a second look.
+  - **ATS check:** the exported PDF is read back the way an applicant tracking system would, checking your name, section headings, role order, page count and keyword coverage for the posting. Every exported version is saved against its job.
 - **Profile:** import a PDF, .txt or .md resume, or paste the text. The AI drafts your profile, and you review it before saving.
 - **Settings:** bring your own key for Claude, OpenAI or OpenRouter, or run free and fully local with Ollama. Keys live in the OS keychain. A usage panel shows token spend.
-- **Everywhere:** ⌘K command palette, ⌘N to add any job by hand (for example from LinkedIn), ⌘1–5 to switch views, light and dark mode, and native window translucency on macOS and Windows.
+- **Everywhere:** ⌘K command palette, ⌘N to add any job by hand (for example from LinkedIn), ⌘1–6 to switch views, light and dark mode, and native window translucency on macOS and Windows.
 
 ## Layout
 
@@ -18,6 +22,7 @@ An honest, private job search copilot for macOS, Windows and Linux. It finds rea
 crates/core      domain model, SQLite storage + migrations, dedup keys, scoring
 crates/sources   job sources: Greenhouse, Lever (US/EU), Ashby, Remotive; SSRF-guarded HTTP
 crates/ai        Anthropic + OpenAI-compatible adapters, structured-output prompts
+crates/docs      resume model, Typst templates + renderer, fact gate, ATS read-back, tailoring
 apps/desktop     Tauri 2 shell (src-tauri/) and React 19 UI (src/)
 ```
 
@@ -31,6 +36,12 @@ pnpm install
 pnpm tauri dev          # run the app
 cargo test --workspace  # from the repo root: Rust unit tests
 pnpm typecheck          # frontend types
+```
+
+Render sample resumes (PDF + SVG) without the UI:
+
+```sh
+cargo run -p waypoint-docs --example render -- /tmp
 ```
 
 Check a live job source without the UI:

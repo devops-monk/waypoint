@@ -195,3 +195,70 @@ export interface PipelineCount {
   status: Status;
   count: number;
 }
+
+// ── Resume Studio ───────────────────────────────────────────────────────
+
+export type Template = "clean" | "modern";
+
+export interface ResumeRole {
+  company: string;
+  title: string;
+  location: string;
+  start: string;
+  end: string;
+  bullets: string[];
+}
+
+export interface ResumeDoc {
+  name: string;
+  headline: string;
+  contact: string[];
+  summary: string;
+  experience: ResumeRole[];
+  education: { institution: string; degree: string; start: string; end: string }[];
+  skills: string[];
+  languages: string[];
+  paper: "a4" | "us-letter" | string;
+}
+
+export interface FactIssue {
+  severity: "block" | "warn";
+  path: string;
+  message: string;
+}
+
+export interface ResumeState {
+  doc: ResumeDoc;
+  template: Template;
+  saved_at: string | null;
+  exported_to: string | null;
+}
+
+export interface BulletChange {
+  source_index: number;
+  original: string;
+  proposed: string;
+  issues: FactIssue[];
+}
+
+export interface Proposal {
+  summary_original: string;
+  summary_proposed: string;
+  summary_issues: FactIssue[];
+  roles: { role_index: number; company: string; title: string; bullets: BulletChange[]; omitted: [number, string][] }[];
+  skills_proposed: string[];
+  skill_issues: FactIssue[];
+  rationale: string;
+  doc: ResumeDoc;
+}
+
+export interface AtsReport {
+  pages: number;
+  extracted_chars: number;
+  name_found: boolean;
+  missing_sections: string[];
+  companies_in_order: boolean;
+  keywords: { keyword: string; found: boolean }[];
+  coverage: number;
+  problems: string[];
+}

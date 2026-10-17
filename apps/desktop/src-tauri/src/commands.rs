@@ -271,7 +271,7 @@ pub fn delete_api_key(provider: Provider) -> CmdResult<()> {
     secrets::delete(provider).map_err(err)
 }
 
-async fn ai_config_and_key(state: &AppState) -> Result<(LlmConfig, Option<String>), String> {
+pub(crate) async fn ai_config_and_key(state: &AppState) -> Result<(LlmConfig, Option<String>), String> {
     let cfg: LlmConfig = state
         .db
         .get_setting(AI_CONFIG_KEY)

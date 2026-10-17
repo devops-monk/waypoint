@@ -16,6 +16,7 @@ tauri-build = { version = "2", features = [] }
 waypoint-core.workspace = true
 waypoint-sources.workspace = true
 waypoint-ai.workspace = true
+waypoint-docs.workspace = true
 anyhow.workspace = true
 chrono.workspace = true
 futures.workspace = true

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import clsx from "clsx";
-import { AlertTriangle, Bookmark, Check, ExternalLink, Sparkles, Star, X } from "lucide-react";
+import { AlertTriangle, Bookmark, Check, ExternalLink, FileText, Sparkles, Star, X } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -113,7 +113,7 @@ function EvaluationPanel({ evaluation, score, band, model }: { evaluation: Evalu
   );
 }
 
-export function JobDetail({ jobId, onTriage }: { jobId: number; onTriage?: (s: Status) => void }) {
+export function JobDetail({ jobId, onTriage, onTailor }: { jobId: number; onTriage?: (s: Status) => void; onTailor?: () => void }) {
   const qc = useQueryClient();
   const { data: job } = useQuery({ queryKey: ["job", jobId], queryFn: () => api.getJob(jobId) });
   const { data: ev } = useQuery({ queryKey: ["evaluation", jobId], queryFn: () => api.latestEvaluation(jobId) });
@@ -191,10 +191,18 @@ export function JobDetail({ jobId, onTriage }: { jobId: number; onTriage?: (s: S
           {ev?.evaluation ? (
             <>
               <EvaluationPanel evaluation={ev.evaluation} score={ev.stored.score} band={ev.stored.band} model={ev.stored.model} />
-              <div className="mt-5 flex justify-end">
+              <div className="mt-5 flex justify-end gap-2">
                 <Button size="sm" variant="plain" busy={evaluate.isPending} icon={<Sparkles className="size-3.5" />} onClick={() => evaluate.mutate()}>
                   Score again
                 </Button>
+                {onTailor && (
+                  <Button size="sm" variant="primary" icon={<FileText className="size-3.5" />} onClick={async () => {
+                    if (job.status === "new") await move("saved");
+                    onTailor();
+                  }}>
+                    Tailor resume
+                  </Button>
+                )}
               </div>
             </>
           ) : (

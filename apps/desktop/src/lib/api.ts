@@ -15,6 +15,12 @@ import type {
   SeedBoard,
   Status,
   UsageRow,
+  AtsReport,
+  Proposal,
+  ResumeDoc,
+  ResumeState,
+  FactIssue,
+  Template,
 } from "./types";
 
 // One typed wrapper per Rust command. Argument names follow Tauri's camelCase convention.
@@ -48,6 +54,14 @@ export const api = {
   latestEvaluation: (jobId: number) => invoke<EvaluationView | null>("latest_evaluation", { jobId }),
   evaluateJob: (jobId: number) => invoke<EvaluationView>("evaluate_job", { jobId }),
   tokenUsage: () => invoke<UsageRow[]>("token_usage"),
+
+  resumeLoad: (jobId: number | null) => invoke<ResumeState>("resume_load", { jobId }),
+  resumeRender: (doc: ResumeDoc, template: Template) => invoke<{ pages: string[]; issues: FactIssue[] }>("resume_render", { doc, template }),
+  resumeTailor: (jobId: number) => invoke<Proposal>("resume_tailor", { jobId }),
+  resumeSave: (jobId: number | null, doc: ResumeDoc, template: Template) => invoke<number>("resume_save", { jobId, doc, template }),
+  resumeExport: (jobId: number | null, doc: ResumeDoc, template: Template, path: string) =>
+    invoke<{ path: string; ats: AtsReport }>("resume_export", { req: { job_id: jobId, doc, template, path } }),
+  resumeAts: (jobId: number | null, doc: ResumeDoc, template: Template) => invoke<AtsReport>("resume_ats", { jobId, doc, template }),
 };
 
 export function errorMessage(e: unknown): string {

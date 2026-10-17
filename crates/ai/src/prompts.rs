@@ -222,6 +222,62 @@ pub fn profile_prompt(resume_text: &str) -> (String, String) {
     (format!("{PROFILE_SYSTEM}\n\n{UNTRUSTED}"), format!("<resume>\n{resume_text}\n</resume>\n\nExtract the profile."))
 }
 
+// ── Resume tailoring ────────────────────────────────────────────────────
+
+pub const TAILOR_SYSTEM: &str = r#"You tailor a candidate's resume to one job posting. You may only select, reorder and reword what the candidate's profile already says. You never add facts.
+
+Rules:
+- Refer to roles by role_index and to bullets by source_index, both zero-based positions in the profile.
+- For each role, list the bullets to show, most relevant to this posting first. Drop a bullet only when it has nothing to do with this job; keep at least two bullets for each of the two most recent roles when they exist.
+- Reword a bullet only to make its relevance clearer or to use the posting's vocabulary for something the bullet already says. Keep every number, metric, name and technology exactly as written. Never add a tool, number, scope, title or outcome that isn't in the source bullet.
+- If a bullet is already good, return its text unchanged.
+- Summary: two or three sentences built only from facts in the profile, aimed at this role. If the profile has no summary and too few facts, return an empty string.
+- Skills: the candidate's own skills only, ordered by relevance to the posting. Omit ones that don't matter here. Never add skills.
+- Rationale: one or two sentences on what you emphasized and why.
+"Keywords get reformulated, never fabricated.""#;
+
+pub fn tailor_schema() -> Value {
+    let strings = json!({ "type": "array", "items": { "type": "string" } });
+    json!({
+        "type": "object",
+        "properties": {
+            "summary": { "type": "string" },
+            "roles": { "type": "array", "items": {
+                "type": "object",
+                "properties": {
+                    "role_index": { "type": "integer" },
+                    "bullets": { "type": "array", "items": {
+                        "type": "object",
+                        "properties": { "source_index": { "type": "integer" }, "text": { "type": "string" } },
+                        "required": ["source_index", "text"],
+                        "additionalProperties": false
+                    }}
+                },
+                "required": ["role_index", "bullets"],
+                "additionalProperties": false
+            }},
+            "skills": strings,
+            "rationale": { "type": "string" }
+        },
+        "required": ["summary", "roles", "skills", "rationale"],
+        "additionalProperties": false
+    })
+}
+
+/// The profile is rendered with explicit indices so the model can reference items exactly.
+pub fn tailor_prompt(profile: &Profile, job: &Job, keywords: &[String]) -> (String, String) {
+    let mut p = format!("Name: {}\nHeadline: {}\nSummary: {}\nSkills: {}\n\nRoles:\n", profile.name, profile.headline, profile.summary, profile.skills.join(", "));
+    for (ri, e) in profile.experience.iter().enumerate() {
+        p.push_str(&format!("role_index {ri}: {} at {} ({} – {})\n", e.title, e.company, e.start, e.end));
+        for (bi, h) in e.highlights.iter().enumerate() {
+            p.push_str(&format!("  source_index {bi}: {h}\n"));
+        }
+    }
+    let kw = if keywords.is_empty() { String::new() } else { format!("\nKeywords the posting screens for: {}\n", keywords.join(", ")) };
+    let user = format!("<candidate_profile>\n{p}</candidate_profile>\n\n<job_posting>\n{}\n</job_posting>\n{kw}\nTailor the resume for this job.", render_job(job));
+    (format!("{TAILOR_SYSTEM}\n\n{UNTRUSTED}"), user)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -241,6 +297,7 @@ mod tests {
     fn schemas_satisfy_structured_output_rules() {
         assert!(every_object_is_closed(&evaluation_schema()));
         assert!(every_object_is_closed(&profile_schema()));
+        assert!(every_object_is_closed(&tailor_schema()));
     }
 
     #[test]

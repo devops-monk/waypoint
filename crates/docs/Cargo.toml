@@ -1,0 +1,20 @@
+[package]
+name = "waypoint-docs"
+description = "Resume rendering (Typst), fact gate and ATS checks for Waypoint"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+waypoint-core.workspace = true
+anyhow.workspace = true
+chrono.workspace = true
+regex.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+typst = "0.15"
+typst-pdf = "0.15"
+typst-svg = "0.15"
+typst-layout = "0.15"
+typst-assets = { version = "0.15", features = ["fonts"] }
+pdf-extract = "0.9"

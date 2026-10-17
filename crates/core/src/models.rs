@@ -123,3 +123,14 @@ pub struct PipelineCounts {
     pub status: Status,
     pub count: i64,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StoredResume {
+    pub id: i64,
+    pub job_id: Option<i64>,
+    pub template: String,
+    /// The resume document as JSON (owned by the docs crate).
+    pub data: serde_json::Value,
+    pub file_path: Option<String>,
+    pub created_at: DateTime<Utc>,
+}

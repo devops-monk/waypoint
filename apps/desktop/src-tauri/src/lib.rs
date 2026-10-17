@@ -1,4 +1,5 @@
 mod commands;
+mod resume_cmds;
 mod secrets;
 
 use std::time::Duration;
@@ -70,6 +71,12 @@ pub fn run() {
             commands::latest_evaluation,
             commands::evaluate_job,
             commands::token_usage,
+            resume_cmds::resume_load,
+            resume_cmds::resume_render,
+            resume_cmds::resume_tailor,
+            resume_cmds::resume_save,
+            resume_cmds::resume_export,
+            resume_cmds::resume_ats,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Waypoint");

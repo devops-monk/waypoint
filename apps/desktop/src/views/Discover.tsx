@@ -115,7 +115,7 @@ function GettingStarted({ onGoTo, onScan, scanning }: { onGoTo: (v: View) => voi
   );
 }
 
-export function Discover({ focusJob, onFocusHandled, onGoTo }: { focusJob: number | null; onFocusHandled: () => void; onGoTo: (v: View) => void }) {
+export function Discover({ focusJob, onFocusHandled, onGoTo, onTailor }: { focusJob: number | null; onFocusHandled: () => void; onGoTo: (v: View) => void; onTailor: (id: number) => void }) {
   const qc = useQueryClient();
   const [scope, setScope] = useState<Scope>("inbox");
   const [query, setQuery] = useState("");
@@ -239,7 +239,7 @@ export function Discover({ focusJob, onFocusHandled, onGoTo }: { focusJob: numbe
             {jobs.length > 0 && <p className="px-3 py-3 text-caption text-ink-3">J and K to move, S to save, X to skip</p>}
           </div>
           <div className="min-w-0 flex-1">
-            {selected != null ? <JobDetail key={selected} jobId={selected} onTriage={triage} /> : <div className="flex h-full items-center justify-center text-callout text-ink-3">Select a job</div>}
+            {selected != null ? <JobDetail key={selected} jobId={selected} onTriage={triage} onTailor={() => onTailor(selected)} /> : <div className="flex h-full items-center justify-center text-callout text-ink-3">Select a job</div>}
           </div>
         </div>
       )}

@@ -397,6 +397,36 @@ impl Db {
         Ok(())
     }
 
+    // ── Resumes ─────────────────────────────────────────────────────────
+
+    pub async fn save_resume(&self, job_id: Option<i64>, template: &str, data: &serde_json::Value, file_path: Option<&str>) -> Result<i64> {
+        let id = sqlx::query_scalar("INSERT INTO resume_version (job_id, template, data, file_path, created_at) VALUES (?, ?, ?, ?, ?) RETURNING id")
+            .bind(job_id)
+            .bind(template)
+            .bind(data.to_string())
+            .bind(file_path)
+            .bind(Utc::now().to_rfc3339())
+            .fetch_one(&self.pool)
+            .await?;
+        Ok(id)
+    }
+
+    /// Latest saved resume for a job, or the base resume when `job_id` is `None`.
+    pub async fn latest_resume(&self, job_id: Option<i64>) -> Result<Option<StoredResume>> {
+        let row = sqlx::query("SELECT * FROM resume_version WHERE job_id IS ? ORDER BY created_at DESC, id DESC LIMIT 1")
+            .bind(job_id)
+            .fetch_optional(&self.pool)
+            .await?;
+        Ok(row.map(|r| StoredResume {
+            id: r.get("id"),
+            job_id: r.get("job_id"),
+            template: r.get("template"),
+            data: serde_json::from_str(r.get::<String, _>("data").as_str()).unwrap_or_default(),
+            file_path: r.get("file_path"),
+            created_at: ts_req(r.get("created_at")),
+        }))
+    }
+
     // ── Profile & settings ──────────────────────────────────────────────
 
     pub async fn current_profile(&self) -> Result<(i64, Profile)> {
@@ -476,6 +506,19 @@ mod tests {
         assert_eq!(db.list_jobs(&JobFilter { min_score: Some(50.0), ..Default::default() }).await.unwrap().len(), 1);
         let applied = db.list_jobs(&JobFilter { statuses: Some(vec![Status::Applied]), ..Default::default() }).await.unwrap();
         assert!(applied.is_empty());
+    }
+
+    #[tokio::test]
+    async fn resumes_are_kept_per_job_and_base() {
+        let db = Db::in_memory().await.unwrap();
+        db.upsert_jobs(&[draft("A", "https://x.test/1")]).await.unwrap();
+        let job = db.list_jobs(&JobFilter::default()).await.unwrap()[0].id;
+        db.save_resume(None, "clean", &serde_json::json!({"v": "base"}), None).await.unwrap();
+        db.save_resume(Some(job), "modern", &serde_json::json!({"v": 1}), None).await.unwrap();
+        db.save_resume(Some(job), "modern", &serde_json::json!({"v": 2}), Some("/tmp/a.pdf")).await.unwrap();
+        assert_eq!(db.latest_resume(None).await.unwrap().unwrap().data["v"], "base");
+        let latest = db.latest_resume(Some(job)).await.unwrap().unwrap();
+        assert_eq!((latest.data["v"].as_i64(), latest.file_path.as_deref()), (Some(2), Some("/tmp/a.pdf")));
     }
 
     #[tokio::test]

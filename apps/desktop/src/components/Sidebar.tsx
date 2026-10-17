@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
-import { Building2, Inbox, Plus, Search, Settings2, SquareKanban, UserRound } from "lucide-react";
+import { Building2, FileText, Inbox, Plus, Search, Settings2, SquareKanban, UserRound } from "lucide-react";
 import type { ReactNode } from "react";
 import { api } from "../lib/api";
 import { EXITS } from "../lib/format";
 import { Kbd } from "./ui";
 
-export type View = "discover" | "pipeline" | "sources" | "profile" | "settings";
+export type View = "discover" | "pipeline" | "resume" | "sources" | "profile" | "settings";
 
 function NavItem({ active, icon, label, count, onClick }: { active: boolean; icon: ReactNode; label: string; count?: number; onClick: () => void }) {
   return (
@@ -47,6 +47,7 @@ export function Sidebar({ view, onNavigate, onAdd, onSearch }: { view: View; onN
         <nav className="flex flex-col gap-0.5">
           <NavItem active={view === "discover"} icon={<Inbox className="size-4" />} label="Discover" count={inbox} onClick={() => onNavigate("discover")} />
           <NavItem active={view === "pipeline"} icon={<SquareKanban className="size-4" />} label="Pipeline" count={active} onClick={() => onNavigate("pipeline")} />
+          <NavItem active={view === "resume"} icon={<FileText className="size-4" />} label="Resume" onClick={() => onNavigate("resume")} />
           <NavItem active={view === "sources"} icon={<Building2 className="size-4" />} label="Companies" onClick={() => onNavigate("sources")} />
         </nav>
         <p className="mt-5 mb-1 px-2 text-caption font-medium text-ink-3">You</p>

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/core", "crates/sources", "crates/ai", "apps/desktop/src-tauri"]
+members = ["crates/core", "crates/sources", "crates/ai", "crates/docs", "apps/desktop/src-tauri"]
 
 [workspace.package]
 version = "0.1.0"
@@ -12,6 +12,7 @@ rust-version = "1.85"
 waypoint-core = { path = "crates/core" }
 waypoint-sources = { path = "crates/sources" }
 waypoint-ai = { path = "crates/ai" }
+waypoint-docs = { path = "crates/docs" }
 
 anyhow = "1"
 async-trait = "0.1"
