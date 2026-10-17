@@ -1,0 +1,135 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Waypoint tokens. Neutrals follow macOS system colors; the brand pair (indigo → teal)
+   comes from the app icon and is reserved for fit, progress and the route line. */
+@theme {
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", Inter, "Noto Sans", Ubuntu, sans-serif;
+
+  --color-ink: #1d1d1f;
+  --color-ink-2: #515154;
+  --color-ink-3: #86868b;
+  --color-window: #f5f5f7;
+  --color-surface: #ffffff;
+  --color-raised: #fbfbfd;
+  --color-hairline: rgb(0 0 0 / 0.08);
+  --color-fill: rgb(0 0 0 / 0.045);
+  --color-fill-strong: rgb(0 0 0 / 0.08);
+  --color-sidebar: rgb(236 236 240 / 0.92);
+  --color-selection: #5b6cff;
+
+  --color-indigo: #5b6cff;
+  --color-teal: #18b8a6;
+  --color-amber: #e8a33d;
+  --color-coral: #ff5a5f;
+  --color-slate: #8e8e93;
+
+  --text-title: 1.625rem;
+  --text-title--line-height: 2rem;
+  --text-title--letter-spacing: -0.02em;
+  --text-headline: 1.25rem;
+  --text-headline--line-height: 1.625rem;
+  --text-headline--letter-spacing: -0.012em;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.4rem;
+  --text-callout: 0.8125rem;
+  --text-callout--line-height: 1.125rem;
+  --text-caption: 0.6875rem;
+  --text-caption--line-height: 0.875rem;
+
+  --radius-control: 7px;
+  --radius-panel: 12px;
+
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.dark {
+  --color-ink: #f5f5f7;
+  --color-ink-2: #c7c7cc;
+  --color-ink-3: #8e8e93;
+  --color-window: #1c1c1e;
+  --color-surface: #232326;
+  --color-raised: #2a2a2d;
+  --color-hairline: rgb(255 255 255 / 0.09);
+  --color-fill: rgb(255 255 255 / 0.06);
+  --color-fill-strong: rgb(255 255 255 / 0.11);
+  --color-sidebar: rgb(38 38 42 / 0.9);
+  --color-selection: #6e7dff;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  color: var(--color-ink);
+  /* A real background everywhere except where the OS paints vibrancy behind us. */
+  background: var(--color-window);
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* macOS and Windows paint the window material; the page lets it show through the sidebar. */
+html.vibrant,
+html.vibrant body {
+  background: transparent;
+}
+html.vibrant {
+  --color-sidebar: transparent;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+}
+
+/* Text the user may want to copy: job descriptions, notes, evaluation text. */
+.selectable,
+input,
+textarea {
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: auto;
+}
+
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-selection) 70%, transparent);
+  outline-offset: 2px;
+  border-radius: var(--radius-control);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-selection) 28%, transparent);
+}
+
+/* Thin overlay scrollbars like macOS. */
+.scroll {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-fill-strong) transparent;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.drag {
+  -webkit-app-region: drag;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

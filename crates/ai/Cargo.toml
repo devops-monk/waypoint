@@ -1,0 +1,18 @@
+[package]
+name = "waypoint-ai"
+description = "Bring-your-own-key LLM adapters and structured prompts for Waypoint"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+waypoint-core.workspace = true
+anyhow.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true

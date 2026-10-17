@@ -1,0 +1,552 @@
+[
+ {
+  "provider": "greenhouse",
+  "slug": "anthropic",
+  "company": "Anthropic"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "polyai",
+  "company": "PolyAI"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "parloa",
+  "company": "Parloa"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "intercom",
+  "company": "Intercom"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "humeai",
+  "company": "Hume AI"
+ },
+ {
+  "provider": "ashby",
+  "slug": "elevenlabs",
+  "company": "ElevenLabs"
+ },
+ {
+  "provider": "ashby",
+  "slug": "deepgram",
+  "company": "Deepgram"
+ },
+ {
+  "provider": "ashby",
+  "slug": "vapi",
+  "company": "Vapi"
+ },
+ {
+  "provider": "ashby",
+  "slug": "bland",
+  "company": "Bland AI"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "airtable",
+  "company": "Airtable"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "vercel",
+  "company": "Vercel"
+ },
+ {
+  "provider": "ashby",
+  "slug": "temporal",
+  "company": "Temporal"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "arizeai",
+  "company": "Arize AI"
+ },
+ {
+  "provider": "ashby",
+  "slug": "runpod",
+  "company": "RunPod"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "coreweave",
+  "company": "Weights & Biases (CoreWeave)"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "gleanwork",
+  "company": "Glean"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "ada",
+  "company": "Ada"
+ },
+ {
+  "provider": "ashby",
+  "slug": "sierra",
+  "company": "Sierra"
+ },
+ {
+  "provider": "ashby",
+  "slug": "decagon",
+  "company": "Decagon"
+ },
+ {
+  "provider": "ashby",
+  "slug": "lindy",
+  "company": "Lindy"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "speechmatics",
+  "company": "Speechmatics"
+ },
+ {
+  "provider": "ashby",
+  "slug": "n8n",
+  "company": "n8n"
+ },
+ {
+  "provider": "ashby",
+  "slug": "zapier",
+  "company": "Zapier"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "boomilp",
+  "company": "Boomi"
+ },
+ {
+  "provider": "ashby",
+  "slug": "cohere",
+  "company": "Cohere"
+ },
+ {
+  "provider": "ashby",
+  "slug": "langchain",
+  "company": "LangChain"
+ },
+ {
+  "provider": "ashby",
+  "slug": "pinecone",
+  "company": "Pinecone"
+ },
+ {
+  "provider": "lever",
+  "slug": "mistral",
+  "company": "Mistral AI"
+ },
+ {
+  "provider": "lever",
+  "slug": "palantir",
+  "company": "Palantir"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "later",
+  "company": "Later"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "safariai",
+  "company": "Safari AI"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "hootsuite",
+  "company": "Hootsuite"
+ },
+ {
+  "provider": "ashby",
+  "slug": "klue",
+  "company": "Klue"
+ },
+ {
+  "provider": "ashby",
+  "slug": "glacis-ai",
+  "company": "Glacis AI"
+ },
+ {
+  "provider": "lever",
+  "slug": "sanctuary",
+  "company": "Sanctuary AI"
+ },
+ {
+  "provider": "ashby",
+  "slug": "attio",
+  "company": "Attio"
+ },
+ {
+  "provider": "lever",
+  "slug": "tinybird",
+  "company": "Tinybird"
+ },
+ {
+  "provider": "lever",
+  "slug": "clarity-ai",
+  "company": "Clarity AI"
+ },
+ {
+  "provider": "ashby",
+  "slug": "perk",
+  "company": "Travelperk"
+ },
+ {
+  "provider": "ashby",
+  "slug": "AlephAlpha",
+  "company": "Aleph Alpha"
+ },
+ {
+  "provider": "ashby",
+  "slug": "DeepL",
+  "company": "DeepL"
+ },
+ {
+  "provider": "ashby",
+  "slug": "black-forest-labs",
+  "company": "Black Forest Labs"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "helsing",
+  "company": "Helsing"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "celonis",
+  "company": "Celonis"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "contentful",
+  "company": "Contentful"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "getyourguide",
+  "company": "GetYourGuide"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "hellofresh",
+  "company": "HelloFresh"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "n26",
+  "company": "N26"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "traderepublicbank",
+  "company": "Trade Republic"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "sumup",
+  "company": "SumUp"
+ },
+ {
+  "provider": "lever",
+  "slug": "qonto",
+  "company": "Qonto"
+ },
+ {
+  "provider": "ashby",
+  "slug": "forto",
+  "company": "Forto"
+ },
+ {
+  "provider": "ashby",
+  "slug": "lakera.ai",
+  "company": "Lakera"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "scandit",
+  "company": "Scandit"
+ },
+ {
+  "provider": "ashby",
+  "slug": "cradlebio",
+  "company": "Cradle"
+ },
+ {
+  "provider": "ashby",
+  "slug": "photoroom",
+  "company": "Photoroom"
+ },
+ {
+  "provider": "lever",
+  "slug": "pigment",
+  "company": "Pigment"
+ },
+ {
+  "provider": "lever_eu",
+  "slug": "diabolocom",
+  "company": "Diabolocom"
+ },
+ {
+  "provider": "ashby",
+  "slug": "wayve",
+  "company": "Wayve"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "isomorphiclabs",
+  "company": "Isomorphic Labs"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "physicsx",
+  "company": "PhysicsX"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "stabilityai",
+  "company": "Stability AI"
+ },
+ {
+  "provider": "ashby",
+  "slug": "synthesia",
+  "company": "Synthesia"
+ },
+ {
+  "provider": "ashby",
+  "slug": "faculty",
+  "company": "Faculty"
+ },
+ {
+  "provider": "ashby",
+  "slug": "causaly",
+  "company": "Causaly"
+ },
+ {
+  "provider": "ashby",
+  "slug": "lovable",
+  "company": "Lovable"
+ },
+ {
+  "provider": "ashby",
+  "slug": "legora",
+  "company": "Legora"
+ },
+ {
+  "provider": "lever",
+  "slug": "spotify",
+  "company": "Spotify"
+ },
+ {
+  "provider": "ashby",
+  "slug": "bolt",
+  "company": "Bolt"
+ },
+ {
+  "provider": "ashby",
+  "slug": "mollie",
+  "company": "Mollie"
+ },
+ {
+  "provider": "lever",
+  "slug": "contentsquare",
+  "company": "Hotjar"
+ },
+ {
+  "provider": "ashby",
+  "slug": "corti",
+  "company": "Corti"
+ },
+ {
+  "provider": "ashby",
+  "slug": "pleo",
+  "company": "Pleo"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "templafy",
+  "company": "Templafy"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "amplemarket",
+  "company": "Amplemarket"
+ },
+ {
+  "provider": "ashby",
+  "slug": "perplexity",
+  "company": "Perplexity"
+ },
+ {
+  "provider": "ashby",
+  "slug": "claylabs",
+  "company": "Clay Labs"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "runwayml",
+  "company": "Runway"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "hightouch",
+  "company": "Hightouch"
+ },
+ {
+  "provider": "ashby",
+  "slug": "workos",
+  "company": "WorkOS"
+ },
+ {
+  "provider": "ashby",
+  "slug": "supabase",
+  "company": "Supabase"
+ },
+ {
+  "provider": "ashby",
+  "slug": "resend",
+  "company": "Resend"
+ },
+ {
+  "provider": "ashby",
+  "slug": "clerk",
+  "company": "Clerk"
+ },
+ {
+  "provider": "ashby",
+  "slug": "inngest",
+  "company": "Inngest"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "planetscale",
+  "company": "PlanetScale"
+ },
+ {
+  "provider": "lever",
+  "slug": "getir",
+  "company": "Getir"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "moniepoint",
+  "company": "Moniepoint"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "jumia",
+  "company": "Jumia"
+ },
+ {
+  "provider": "ashby",
+  "slug": "andela",
+  "company": "Andela"
+ },
+ {
+  "provider": "ashby",
+  "slug": "nubank",
+  "company": "Nubank"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "clara",
+  "company": "Clara"
+ },
+ {
+  "provider": "lever",
+  "slug": "dlocal",
+  "company": "dLocal"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "ebanx",
+  "company": "EBANX"
+ },
+ {
+  "provider": "lever",
+  "slug": "yuno",
+  "company": "Yuno"
+ },
+ {
+  "provider": "ashby",
+  "slug": "addi",
+  "company": "Addi"
+ },
+ {
+  "provider": "lever",
+  "slug": "deuna",
+  "company": "Deuna"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "cobre",
+  "company": "Cobre"
+ },
+ {
+  "provider": "ashby",
+  "slug": "simetrik",
+  "company": "Simetrik"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "huntress",
+  "company": "Huntress"
+ },
+ {
+  "provider": "lever",
+  "slug": "sophos",
+  "company": "Sophos"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "wizinc",
+  "company": "Wiz"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "abnormalsecurity",
+  "company": "Abnormal Security"
+ },
+ {
+  "provider": "ashby",
+  "slug": "1password",
+  "company": "1Password"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "chainguard",
+  "company": "Chainguard"
+ },
+ {
+  "provider": "ashby",
+  "slug": "semgrep",
+  "company": "Semgrep"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "bishopfox",
+  "company": "Bishop Fox"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "praetorian",
+  "company": "Praetorian"
+ },
+ {
+  "provider": "lever",
+  "slug": "coalfire",
+  "company": "Coalfire"
+ },
+ {
+  "provider": "greenhouse",
+  "slug": "bugcrowd",
+  "company": "Bugcrowd"
+ },
+ {
+  "provider": "ashby",
+  "slug": "hackerone",
+  "company": "HackerOne"
+ }
+]

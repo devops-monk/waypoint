@@ -1,0 +1,21 @@
+[package]
+name = "waypoint-sources"
+description = "Job sources (public ATS boards and job APIs) for Waypoint"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+waypoint-core.workspace = true
+anyhow.workspace = true
+async-trait.workspace = true
+chrono.workspace = true
+futures.workspace = true
+regex.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+url.workspace = true
