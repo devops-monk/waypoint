@@ -69,6 +69,10 @@ Every push and pull request also runs `.github/workflows/ci.yml`: Rust tests, cl
 
 Builds are unsigned for now, so macOS and Windows warn on first launch. To sign, add these repository secrets and pass them as `env` to the `tauri-action` step: `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD` and `APPLE_TEAM_ID` for a signed, notarized macOS build (needs an Apple Developer account), and a code-signing certificate for Windows.
 
+## Website
+
+`website/` is the static site at https://waypoint.devops-monk.com (one HTML file, screenshots in `website/assets`). Run `website/deploy.sh` to publish it, or `website/deploy.sh v0.2.0` to also upload that release's installers to `/downloads`. The server's nginx config lives at `/etc/nginx/sites-available/waypoint`, with HTTPS from certbot.
+
 ## Principles
 
 - **Never invent facts.** Scores and generated text use only what's in your profile.
