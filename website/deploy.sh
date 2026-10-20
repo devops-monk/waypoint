@@ -10,6 +10,6 @@ set -euo pipefail
 HOST="${WAYPOINT_HOST:-root@168.231.79.163}"
 ROOT=/var/www/waypoint
 cd "$(dirname "$0")"
-rsync -rt --chmod=D755,F644 --delete --exclude downloads --exclude updates --exclude deploy.sh ./ "$HOST:$ROOT/"
+rsync -rt --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r --delete --exclude downloads --exclude updates --exclude deploy.sh ./ "$HOST:$ROOT/"
 ssh "$HOST" "chown -R waypoint-deploy:www-data $ROOT"
 echo "Deployed to https://waypoint.devops-monk.com"
