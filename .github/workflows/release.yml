@@ -1,0 +1,97 @@
+# Builds Waypoint for every desktop OS and attaches the installers to a draft GitHub release.
+#
+# To release: bump "version" in apps/desktop/src-tauri/tauri.conf.json (and Cargo.toml),
+# commit, then push a matching tag:
+#
+#   git tag v0.1.0 && git push origin v0.1.0
+#
+# Review the draft on the Releases page and publish it. You can also run this workflow by
+# hand from the Actions tab.
+#
+# Builds are unsigned until signing secrets are added (see README, "Releases"):
+# macOS shows "unidentified developer" and Windows SmartScreen warns on first launch.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS (Apple silicon)
+            os: macos-latest
+            target: aarch64-apple-darwin
+          - name: macOS (Intel)
+            os: macos-latest
+            target: x86_64-apple-darwin
+          - name: Windows
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - name: Linux
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libdbus-1-dev patchelf rpm pkg-config
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: apps/desktop/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/desktop/pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        working-directory: apps/desktop
+        run: pnpm install --frozen-lockfile
+
+      - name: Build and upload to the draft release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: apps/desktop
+          tauriScript: pnpm tauri
+          args: --target ${{ matrix.target }}
+          tagName: ${{ github.ref_type == 'tag' && github.ref_name || 'v__VERSION__' }}
+          releaseName: Waypoint ${{ github.ref_type == 'tag' && github.ref_name || 'v__VERSION__' }}
+          releaseBody: |
+            Download the installer for your computer:
+
+            - **macOS, Apple silicon (M1 and later):** the `aarch64.dmg` file
+            - **macOS, Intel:** the `x64.dmg` file
+            - **Windows:** the `.msi` or `-setup.exe` file
+            - **Linux:** `.AppImage` (any distro), `.deb` (Ubuntu, Debian) or `.rpm` (Fedora)
+
+            These builds aren't signed yet. On macOS, right-click the app and choose Open the first time. On Windows, choose More info, then Run anyway.
+          releaseDraft: true
+          prerelease: false

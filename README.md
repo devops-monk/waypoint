@@ -56,6 +56,18 @@ cargo run -p waypoint-sources --example fetch -- ashby supabase
 
 Build installers for the current OS: `pnpm tauri build` produces a .dmg/.app on macOS, .msi/.exe on Windows, and .deb/.rpm/AppImage on Linux.
 
+## Releases
+
+GitHub Actions builds every OS (`.github/workflows/release.yml`):
+
+1. Bump `version` in `apps/desktop/src-tauri/tauri.conf.json` and the workspace `Cargo.toml`, and commit.
+2. Push a matching tag: `git tag v0.1.0 && git push origin v0.1.0`.
+3. The workflow builds macOS (Apple silicon and Intel), Windows and Linux, and attaches the installers to a **draft** release. Check it on the Releases page and publish.
+
+Every push and pull request also runs `.github/workflows/ci.yml`: Rust tests, clippy and the frontend type check.
+
+Builds are unsigned for now, so macOS and Windows warn on first launch. To sign, add these repository secrets and pass them as `env` to the `tauri-action` step: `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD` and `APPLE_TEAM_ID` for a signed, notarized macOS build (needs an Apple Developer account), and a code-signing certificate for Windows.
+
 ## Principles
 
 - **Never invent facts.** Scores and generated text use only what's in your profile.
