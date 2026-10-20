@@ -31,7 +31,27 @@ pub async fn list_jobs(state: State<'_, AppState>, filter: JobFilter) -> CmdResu
 
 #[tauri::command]
 pub async fn get_job(state: State<'_, AppState>, id: i64) -> CmdResult<Job> {
-    state.db.get_job(id).await.map_err(err)
+    load_job(&state, id).await
+}
+
+/// A job with its description filled in. Workday and SmartRecruiters list jobs without
+/// one, so it's fetched the first time the job is opened, scored or written for.
+pub(crate) async fn load_job(state: &AppState, id: i64) -> CmdResult<Job> {
+    let mut job = state.db.get_job(id).await.map_err(err)?;
+    if job.description.trim().is_empty()
+        && waypoint_sources::has_lazy_description(&job.source)
+        && let Some(board) = job.board.clone()
+    {
+        match waypoint_sources::fetch_description(&state.http, &job.source, &board, &job.url).await {
+            Ok(Some(text)) => {
+                state.db.set_description(id, &text).await.map_err(err)?;
+                job.description = text;
+            }
+            Ok(None) => {}
+            Err(e) => tracing::warn!("couldn't fetch description for job {id}: {e}"),
+        }
+    }
+    Ok(job)
 }
 
 #[tauri::command]
@@ -120,11 +140,56 @@ pub fn detect_board(url: String) -> Option<DetectedBoard> {
 
 #[tauri::command]
 pub async fn add_board(state: State<'_, AppState>, provider: String, slug: String, company: String) -> CmdResult<i64> {
-    if !waypoint_sources::PROVIDERS.iter().any(|p| p.id == provider) {
-        return Err(format!("Unknown source {provider:?}"));
-    }
+    let slug = slug.trim().to_string();
+    waypoint_sources::validate(&provider, &slug).map_err(|e| match e {
+        waypoint_sources::SourceError::UnknownProvider(p) => format!("Unknown source {p:?}"),
+        _ => "That doesn't look like a valid board or search. Check the link or keywords and try again.".to_string(),
+    })?;
     let company = if company.trim().is_empty() { slug.clone() } else { company.trim().to_string() };
-    state.db.add_board(&provider, slug.trim(), &company).await.map_err(err)
+    state.db.add_board(&provider, &slug, &company).await.map_err(err)
+}
+
+// ── Source keys (Adzuna) ────────────────────────────────────────────────
+
+#[derive(Serialize, Deserialize)]
+struct AdzunaSecret {
+    app_id: String,
+    app_key: String,
+}
+
+fn source_keys() -> waypoint_sources::Keys {
+    let adzuna = secrets::source::get("adzuna")
+        .ok()
+        .flatten()
+        .and_then(|s| serde_json::from_str::<AdzunaSecret>(&s).ok())
+        .map(|a| waypoint_sources::adzuna::AdzunaKey { app_id: a.app_id, app_key: a.app_key });
+    waypoint_sources::Keys { adzuna }
+}
+
+#[derive(Serialize)]
+pub struct SourceKeyStatus {
+    adzuna: bool,
+}
+
+#[tauri::command]
+pub fn source_key_status() -> SourceKeyStatus {
+    SourceKeyStatus { adzuna: source_keys().adzuna.is_some() }
+}
+
+#[tauri::command]
+pub fn save_adzuna_key(app_id: String, app_key: String) -> CmdResult<()> {
+    let (app_id, app_key) = (app_id.trim().to_string(), app_key.trim().to_string());
+    let ok = |s: &str| !s.is_empty() && s.len() <= 64 && s.chars().all(|c| c.is_ascii_alphanumeric());
+    if !ok(&app_id) || !ok(&app_key) {
+        return Err("The app ID and key are the letters and numbers from your Adzuna developer dashboard.".into());
+    }
+    let value = serde_json::to_string(&AdzunaSecret { app_id, app_key }).map_err(err)?;
+    secrets::source::set("adzuna", &value).map_err(|e| format!("Couldn't save the key to the system keychain: {e}"))
+}
+
+#[tauri::command]
+pub fn delete_adzuna_key() -> CmdResult<()> {
+    secrets::source::delete("adzuna").map_err(err)
 }
 
 #[tauri::command]
@@ -162,10 +227,12 @@ pub async fn scan_all(app: AppHandle, state: State<'_, AppState>) -> CmdResult<S
     let boards: Vec<Board> = state.db.list_boards().await.map_err(err)?.into_iter().filter(|b| b.enabled).collect();
     let total = boards.len();
     let http = state.http.clone();
+    let keys = source_keys();
     let mut stream = futures::stream::iter(boards.into_iter().map(|b| {
         let http = http.clone();
+        let keys = keys.clone();
         async move {
-            let result = waypoint_sources::fetch(&http, &b.provider, &b.slug, &b.company).await;
+            let result = waypoint_sources::fetch(&http, &b.provider, &b.slug, &b.company, &keys).await;
             (b, result)
         }
     }))
@@ -308,7 +375,7 @@ pub async fn evaluate_job(state: State<'_, AppState>, job_id: i64) -> CmdResult<
     if profile.is_empty() {
         return Err("Add your profile first: Waypoint only scores jobs against facts you've given it.".into());
     }
-    let job = state.db.get_job(job_id).await.map_err(err)?;
+    let job = load_job(&state, job_id).await?;
     if job.description.trim().len() < 80 {
         return Err("This posting has no description to evaluate. Paste the job text into its notes or re-add it with the description.".into());
     }

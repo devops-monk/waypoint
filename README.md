@@ -4,7 +4,8 @@ An honest, private job search copilot for macOS, Windows and Linux. It finds rea
 
 ## What works today
 
-- **Companies:** follow companies by pasting a careers-page link (Greenhouse, Lever, Ashby) or choosing from 110 suggestions. You can also watch Remotive for remote roles by keyword. Boards that fail or go empty are flagged.
+- **Companies:** follow a company by pasting its careers-page link. Waypoint reads Greenhouse, Lever, Ashby, Workday, SmartRecruiters, Workable, Recruitee, Personio and Teamtailor boards, and offers 129 suggestions to start from. Boards that fail or go empty are flagged. For Workday and SmartRecruiters, which list jobs without descriptions, the description is fetched the first time you open a job.
+- **Job searches:** watch a keyword search on remote boards (Remotive, Himalayas, Remote OK), Hacker News' monthly "Who is hiring?" thread, national job boards (Arbeitsagentur in Germany, Platsbanken in Sweden, Jobnet in Denmark), or Adzuna for the US, UK, India and most of Europe (needs your own free Adzuna key, kept in the keychain).
 - **Discover:** an inbox of new roles ranked by fit, with keyboard triage (J/K to move, S to save, X to skip), a remote filter, search, and a warning on old postings.
 - **Fit scoring:** gates for eligibility, language and location, then four weighted dimensions (skills, experience, culture, career). Also covers strengths and gaps, ghost-job signals, and the keywords a posting screens for. The model scores each dimension and the weighted total is computed in code, so the number is reproducible.
 - **Pipeline:** a drag-and-drop board from Saved to Hired, with closed roles kept to the side.
@@ -23,7 +24,7 @@ An honest, private job search copilot for macOS, Windows and Linux. It finds rea
 
 ```
 crates/core      domain model, SQLite storage + migrations, dedup keys, scoring
-crates/sources   job sources: Greenhouse, Lever (US/EU), Ashby, Remotive; SSRF-guarded HTTP
+crates/sources   job sources: 10 ATS board types + 8 job searches; SSRF-guarded, throttled HTTP
 crates/ai        Anthropic + OpenAI-compatible adapters, structured-output prompts
 crates/docs      resume + cover letter models, Typst templates + renderer, fact gate, ATS read-back, tailoring
 apps/desktop     Tauri 2 shell (src-tauri/) and React 19 UI (src/)
@@ -59,7 +60,7 @@ Build installers for the current OS: `pnpm tauri build` produces a .dmg/.app on 
 
 - **Never invent facts.** Scores and generated text use only what's in your profile.
 - **Never auto-submit.** Waypoint prepares and tracks; you apply.
-- **Public data only.** It reads job boards companies publish for embedding. It does not log in to or scrape LinkedIn or Indeed.
+- **Public data only.** It reads job boards companies publish for embedding and public job-search APIs, at most one request per second per site. It does not log in to or scrape LinkedIn or Indeed.
 - **Local first.** The SQLite database lives in your app data folder and there's no Waypoint server.
 
 See `NOTICE.md` for the open-source work this builds on.

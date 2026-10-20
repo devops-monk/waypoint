@@ -81,6 +81,9 @@ export interface ProviderInfo {
   name: string;
   kind: "board" | "search";
   example: string;
+  coverage: string;
+  place: boolean;
+  needs_key: string | null;
 }
 
 export interface ScanProgress {

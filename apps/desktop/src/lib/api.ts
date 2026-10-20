@@ -44,6 +44,9 @@ export const api = {
   removeBoard: (id: number) => invoke<void>("remove_board", { id }),
   setBoardEnabled: (id: number, enabled: boolean) => invoke<void>("set_board_enabled", { id, enabled }),
   scanAll: () => invoke<ScanSummary>("scan_all"),
+  sourceKeyStatus: () => invoke<{ adzuna: boolean }>("source_key_status"),
+  saveAdzunaKey: (appId: string, appKey: string) => invoke<void>("save_adzuna_key", { appId, appKey }),
+  deleteAdzunaKey: () => invoke<void>("delete_adzuna_key"),
 
   getProfile: () => invoke<Profile>("get_profile"),
   saveProfile: (profile: Profile) => invoke<number>("save_profile", { profile }),

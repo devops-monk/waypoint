@@ -273,6 +273,12 @@ impl Db {
         Ok(())
     }
 
+    /// Fill in a description fetched on demand (sources that list jobs without one).
+    pub async fn set_description(&self, id: i64, description: &str) -> Result<()> {
+        sqlx::query("UPDATE job SET description = ? WHERE id = ? AND description = ''").bind(description).bind(id).execute(&self.pool).await?;
+        Ok(())
+    }
+
     pub async fn set_notes(&self, id: i64, notes: &str) -> Result<()> {
         sqlx::query("UPDATE job SET notes = ? WHERE id = ?").bind(notes).bind(id).execute(&self.pool).await?;
         Ok(())

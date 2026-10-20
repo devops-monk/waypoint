@@ -83,7 +83,7 @@ pub async fn resume_tailor(state: State<'_, AppState>, job_id: i64) -> CmdResult
     if profile.experience.is_empty() {
         return Err("Add your experience to your profile first. Tailoring only rearranges what's there.".into());
     }
-    let job = state.db.get_job(job_id).await.map_err(err)?;
+    let job = crate::commands::load_job(&state, job_id).await?;
     if job.description.trim().len() < 80 {
         return Err("This posting has no description to tailor against.".into());
     }

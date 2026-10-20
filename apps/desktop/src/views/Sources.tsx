@@ -3,6 +3,7 @@ import clsx from "clsx";
 import { AlertTriangle, Check, Plus, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { Button, Field, IconButton, Input, Panel, Segmented, Toggle } from "../components/ui";
 import { api, errorMessage } from "../lib/api";
 import { SOURCE_LABEL, relativeTime } from "../lib/format";
@@ -45,8 +46,8 @@ function AddByLink({ onAdded }: { onAdded: () => void }) {
           url.startsWith("https://")
             ? detected
               ? <span className="text-teal">Found a {SOURCE_LABEL[detected.provider]} job board</span>
-              : "Waypoint reads Greenhouse, Lever and Ashby job boards. This link isn't one of them yet."
-            : "Paste a link like job-boards.greenhouse.io/acme, jobs.lever.co/acme or jobs.ashbyhq.com/acme"
+              : "Waypoint reads Greenhouse, Lever, Ashby, Workday, SmartRecruiters, Workable, Recruitee, Personio and Teamtailor boards. This link isn't one of them yet."
+            : "Paste the company's careers page link, e.g. jobs.ashbyhq.com/acme or acme.wd5.myworkdayjobs.com/External"
         }
       >
         <Input value={url} onChange={(e) => setUrl(e.target.value.trim())} placeholder="https://jobs.ashbyhq.com/…" />
@@ -61,26 +62,139 @@ function AddByLink({ onAdded }: { onAdded: () => void }) {
   );
 }
 
-function AddSearch({ onAdded }: { onAdded: () => void }) {
-  const [q, setQ] = useState("");
-  const add = async () => {
+const ADZUNA_COUNTRIES: [string, string][] = [
+  ["us", "United States"], ["gb", "United Kingdom"], ["in", "India"], ["de", "Germany"], ["nl", "Netherlands"], ["fr", "France"],
+  ["at", "Austria"], ["be", "Belgium"], ["ch", "Switzerland"], ["es", "Spain"], ["it", "Italy"], ["pl", "Poland"], ["ca", "Canada"],
+  ["au", "Australia"], ["nz", "New Zealand"], ["sg", "Singapore"], ["za", "South Africa"], ["br", "Brazil"], ["mx", "Mexico"],
+];
+
+/** Sources whose terms ask for a visible link back, which every saved job keeps. */
+const ATTRIBUTION: Record<string, string> = {
+  remotive: "Jobs link back to Remotive, as their terms require.",
+  remoteok: "Jobs link back to Remote OK, as their terms require.",
+};
+
+function AdzunaKeyForm({ onSaved }: { onSaved: () => void }) {
+  const [appId, setAppId] = useState("");
+  const [appKey, setAppKey] = useState("");
+  const [busy, setBusy] = useState(false);
+  const save = async () => {
+    setBusy(true);
     try {
-      await api.addBoard("remotive", q.trim(), `Remote: ${q.trim()}`);
-      toast.success(`Watching remote jobs for “${q.trim()}”`);
+      await api.saveAdzunaKey(appId, appKey);
+      toast.success("Adzuna key saved to your keychain");
+      onSaved();
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="rounded-[10px] bg-fill p-3.5">
+      <p className="text-callout font-medium">Adzuna needs your own free API key</p>
+      <p className="mt-0.5 text-callout text-ink-2">
+        Sign up at{" "}
+        <button className="text-selection hover:underline" onClick={() => openUrl("https://developer.adzuna.com/signup")}>developer.adzuna.com</button>
+        , then copy the app ID and key from your dashboard. They're stored in your system keychain.
+      </p>
+      <div className="mt-3 grid grid-cols-[1fr_1fr_auto] items-end gap-3">
+        <Field label="App ID"><Input value={appId} onChange={(e) => setAppId(e.target.value)} autoComplete="off" spellCheck={false} /></Field>
+        <Field label="App key"><Input type="password" value={appKey} onChange={(e) => setAppKey(e.target.value)} autoComplete="off" spellCheck={false} /></Field>
+        <Button busy={busy} disabled={!appId.trim() || !appKey.trim()} onClick={save}>Save key</Button>
+      </div>
+    </div>
+  );
+}
+
+function AddSearch({ onAdded }: { onAdded: () => void }) {
+  const qc = useQueryClient();
+  const { data: providers = [] } = useQuery({ queryKey: ["providers"], queryFn: api.providers });
+  const { data: keys } = useQuery({ queryKey: ["source-keys"], queryFn: api.sourceKeyStatus });
+  const searches = providers.filter((p) => p.kind === "search");
+  const [id, setId] = useState("remotive");
+  const [q, setQ] = useState("");
+  const [place, setPlace] = useState("");
+  const [country, setCountry] = useState("in");
+  const provider = searches.find((p) => p.id === id);
+  const needsKey = provider?.needs_key === "Adzuna" && keys && !keys.adzuna;
+
+  const add = async () => {
+    if (!provider || !q.trim()) return;
+    const what = q.trim();
+    const where = provider.place ? place.trim() : "";
+    const query = (provider.id === "adzuna" ? `${country}:` : "") + what + (where ? ` @ ${where}` : "");
+    const countryName = ADZUNA_COUNTRIES.find(([c]) => c === country)?.[1];
+    const scope = [where, provider.id === "adzuna" ? countryName : null].filter(Boolean).join(", ");
+    const label = `${provider.name}: ${what}${scope ? ` in ${scope}` : ""}`;
+    try {
+      await api.addBoard(provider.id, query, label);
+      toast.success(`Watching ${label}`);
       setQ("");
+      setPlace("");
       onAdded();
     } catch (e) {
       toast.error(errorMessage(e));
     }
   };
+
   return (
-    <div className="grid grid-cols-[1fr_auto] items-end gap-3">
-      <Field label="Remote jobs keyword" hint="Searches Remotive's remote job board. Jobs link back to Remotive, as their terms require.">
-        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="rust, product designer, data engineer" onKeyDown={(e) => e.key === "Enter" && q.trim() && add()} />
-      </Field>
-      <Button className="mb-[34px]" disabled={!q.trim()} onClick={add}>
-        Watch
-      </Button>
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Job search source">
+        {searches.map((p) => (
+          <button
+            key={p.id}
+            role="radio"
+            aria-checked={p.id === id}
+            onClick={() => setId(p.id)}
+            className={clsx(
+              "h-7 rounded-full px-3 text-callout font-medium transition-colors",
+              p.id === id ? "bg-selection text-white" : "bg-fill text-ink-2 hover:bg-fill-strong hover:text-ink",
+            )}
+          >
+            {p.name}
+          </button>
+        ))}
+      </div>
+      {provider && (
+        <>
+          <p className="-mt-1 text-callout text-ink-2">{provider.coverage}.{ATTRIBUTION[provider.id] ? ` ${ATTRIBUTION[provider.id]}` : ""}</p>
+          {needsKey ? (
+            <AdzunaKeyForm onSaved={() => qc.invalidateQueries({ queryKey: ["source-keys"] })} />
+          ) : (
+            <div className={clsx("grid items-end gap-3", provider.id === "adzuna" ? "grid-cols-[160px_1fr_180px_auto]" : provider.place ? "grid-cols-[1fr_200px_auto]" : "grid-cols-[1fr_auto]")}>
+              {provider.id === "adzuna" && (
+                <Field label="Country">
+                  <select value={country} onChange={(e) => setCountry(e.target.value)} className="h-8 rounded-control bg-surface px-2 text-body text-ink shadow-[0_0_0_0.5px_var(--color-hairline)] outline-none">
+                    {ADZUNA_COUNTRIES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}
+                  </select>
+                </Field>
+              )}
+              <Field label="Keywords">
+                <Input value={q} onChange={(e) => setQ(e.target.value.replace("@", ""))} placeholder={provider.example.split("@")[0].replace(/^[a-z]{2}:/, "").trim()} onKeyDown={(e) => e.key === "Enter" && add()} />
+              </Field>
+              {provider.place && (
+                <Field label="Place (optional)">
+                  <Input value={place} onChange={(e) => setPlace(e.target.value.replace("@", ""))} placeholder={provider.example.split("@")[1]?.trim() ?? ""} onKeyDown={(e) => e.key === "Enter" && add()} />
+                </Field>
+              )}
+              <Button disabled={!q.trim()} onClick={add}>Watch</Button>
+            </div>
+          )}
+          {provider.id === "adzuna" && keys?.adzuna && (
+            <button
+              className="-mt-2 self-start text-caption text-ink-3 hover:text-coral"
+              onClick={async () => {
+                await api.deleteAdzunaKey();
+                qc.invalidateQueries({ queryKey: ["source-keys"] });
+                toast("Adzuna key removed");
+              }}
+            >
+              Remove Adzuna key
+            </button>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -116,10 +230,12 @@ export function Sources() {
           <section>
             <div className="mb-3 flex items-center justify-between">
               <div>
-                <h2 className="text-headline font-semibold">Follow a company</h2>
-                <p className="mt-0.5 text-callout text-ink-2">Waypoint reads public job boards directly. It never logs in or scrapes LinkedIn.</p>
+                <h2 className="text-headline font-semibold">{mode === "link" ? "Follow a company" : "Watch a job search"}</h2>
+                <p className="mt-0.5 text-callout text-ink-2">
+                  {mode === "link" ? "Waypoint reads public job boards directly. It never logs in or scrapes LinkedIn." : "New matches show up in Discover each time you check for jobs."}
+                </p>
               </div>
-              <Segmented value={mode} onChange={setMode} options={[{ value: "link", label: "Careers page" }, { value: "search", label: "Remote keyword" }]} />
+              <Segmented value={mode} onChange={setMode} options={[{ value: "link", label: "Careers page" }, { value: "search", label: "Job search" }]} />
             </div>
             <Panel className="p-4">{mode === "link" ? <AddByLink onAdded={refresh} /> : <AddSearch onAdded={refresh} />}</Panel>
           </section>

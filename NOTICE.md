@@ -7,7 +7,7 @@ Waypoint ports logic and data from two MIT-licensed projects. The code was rewri
 Copyright (c) 2026 Santiago Fernández de Valderrama. MIT License. https://github.com/career-ops-hq/career-ops
 
 Used as a reference for:
-- the Greenhouse, Lever and Ashby providers (`crates/sources`)
+- the Greenhouse, Lever, Ashby, Workday, SmartRecruiters, Workable, Recruitee, Personio, Teamtailor, Himalayas, Remote OK, Hacker News, Arbeitsagentur and Platsbanken providers (`crates/sources`)
 - the application status model and aliases (`crates/core/src/status.rs`)
 - the posting-legitimacy assessment in the evaluation prompt
 - the starter company list (`crates/sources/src/seed_boards.json`, derived from `templates/portals.example.yml`)
@@ -19,6 +19,7 @@ Used as a reference for:
 Copyright (c) 2026 Mads Lorentzen. MIT License. https://github.com/MadsLorentzen/ai-job-search
 
 Used as a reference for:
+- the Jobnet.dk search (`crates/sources/src/jobnet.rs`, from `.agents/skills/jobnet-search`)
 - the dedup key algorithm (`crates/core/src/dedup.rs`, a port of `tools/job_key.py`)
 - the fit-scoring weights, bands and gates (`crates/core/src/scoring.rs`, from `tools/rank_state.py` and `04-job-evaluation.md`)
 - the tailoring rules and ATS read-back idea (`crates/docs`, from `05-cv-templates.md` and `tools/verify_pdf.py`)

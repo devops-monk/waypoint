@@ -14,6 +14,34 @@ fn entry(provider: Provider) -> Result<keyring::Entry> {
     Ok(keyring::Entry::new(SERVICE, &account(provider))?)
 }
 
+/// Keys for job sources (e.g. Adzuna), stored under `source-key:{id}` as JSON.
+pub mod source {
+    use super::*;
+
+    fn entry(id: &str) -> Result<keyring::Entry> {
+        Ok(keyring::Entry::new(SERVICE, &format!("source-key:{id}"))?)
+    }
+
+    pub fn get(id: &str) -> Result<Option<String>> {
+        match entry(id)?.get_password() {
+            Ok(k) => Ok(Some(k)),
+            Err(keyring::Error::NoEntry) => Ok(None),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    pub fn set(id: &str, value: &str) -> Result<()> {
+        Ok(entry(id)?.set_password(value)?)
+    }
+
+    pub fn delete(id: &str) -> Result<()> {
+        match entry(id)?.delete_credential() {
+            Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+            Err(e) => Err(e.into()),
+        }
+    }
+}
+
 pub fn get(provider: Provider) -> Result<Option<String>> {
     match entry(provider)?.get_password() {
         Ok(k) => Ok(Some(k)),

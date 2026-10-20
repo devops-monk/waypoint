@@ -55,11 +55,31 @@ pub fn from_millis(ms: i64) -> Option<DateTime<Utc>> {
     Utc.timestamp_millis_opt(ms).single()
 }
 
+/// Every `<tag>…</tag>` block in an XML document, in order. Feeds here are flat and
+/// machine-written, so a regex reader is enough and keeps a full XML parser out.
+pub fn xml_blocks<'a>(xml: &'a str, tag: &str) -> Vec<&'a str> {
+    let re = Regex::new(&format!(r"(?s)<{0}\b[^>]*>(.*?)</{0}>", regex::escape(tag))).expect("tag regex");
+    re.captures_iter(xml).filter_map(|c| c.get(1)).map(|m| m.as_str()).collect()
+}
+
+/// Text of the first `<tag>` in a block, with CDATA unwrapped and entities decoded.
+pub fn xml_text(block: &str, tag: &str) -> String {
+    xml_blocks(block, tag).first().map(|t| {
+        let t = t.trim();
+        let t = t.strip_prefix("<![CDATA[").and_then(|t| t.strip_suffix("]]>")).unwrap_or(t);
+        decode_entities(t).trim().to_string()
+    }).unwrap_or_default()
+}
+
 pub fn parse_date(s: &str) -> Option<DateTime<Utc>> {
+    let s = s.trim();
     DateTime::parse_from_rfc3339(s)
+        .or_else(|_| DateTime::parse_from_rfc2822(s))
         .map(|d| d.with_timezone(&Utc))
         .ok()
-        .or_else(|| chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S").ok().map(|n| n.and_utc()))
+        .or_else(|| chrono::NaiveDateTime::parse_from_str(s.get(..19)?, "%Y-%m-%dT%H:%M:%S").ok().map(|n| n.and_utc()))
+        .or_else(|| chrono::NaiveDateTime::parse_from_str(s.get(..19)?, "%Y-%m-%d %H:%M:%S").ok().map(|n| n.and_utc()))
+        .or_else(|| s.parse::<i64>().ok().filter(|n| *n > 1_000_000_000 && *n < 10_000_000_000).and_then(|n| Utc.timestamp_opt(n, 0).single()))
         .or_else(|| chrono::NaiveDate::parse_from_str(s.get(..10)?, "%Y-%m-%d").ok().and_then(|d| d.and_hms_opt(0, 0, 0)).map(|n| n.and_utc()))
 }
 
@@ -81,5 +101,19 @@ mod tests {
         assert!(parse_date("2026-03-01T10:00:00Z").is_some());
         assert!(parse_date("2026-03-01T10:00:00").is_some());
         assert!(parse_date("2026-03-01").is_some());
+        assert!(parse_date("Fri, 16 Oct 2026 17:38:10 +0200").is_some());
+        assert!(parse_date("2026-10-14 11:37:16 UTC").is_some());
+        assert!(parse_date("2026-10-18T07:01:29.578").is_some());
+        assert_eq!(parse_date("1791341968").unwrap().timestamp(), 1791341968);
+    }
+
+    #[test]
+    fn reads_simple_xml() {
+        let xml = "<rss><item><title>A &amp; B</title><x/></item><item><title><![CDATA[C]]></title></item></rss>";
+        let items = xml_blocks(xml, "item");
+        assert_eq!(items.len(), 2);
+        assert_eq!(xml_text(items[0], "title"), "A & B");
+        assert_eq!(xml_text(items[1], "title"), "C");
+        assert_eq!(xml_text(items[1], "missing"), "");
     }
 }
