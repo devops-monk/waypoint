@@ -5,8 +5,9 @@
 #
 #   git tag v0.1.0 && git push origin v0.1.0
 #
-# Review the draft on the Releases page and publish it. You can also run this workflow by
-# hand from the Actions tab.
+# Review the draft on the Releases page and publish it. Publishing runs publish.yml, which
+# puts the installers on waypoint.devops-monk.com and tells installed apps to update.
+# You can also run this workflow by hand from the Actions tab.
 #
 # Builds are unsigned until signing secrets are added (see README, "Releases"):
 # macOS shows "unidentified developer" and Windows SmartScreen warns on first launch.
@@ -78,6 +79,9 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Signs the update bundles so installed apps can verify them before installing.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: apps/desktop
           tauriScript: pnpm tauri

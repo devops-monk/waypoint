@@ -5,6 +5,8 @@ import { Check, KeyRound, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { isPermissionGranted, requestPermission } from "@tauri-apps/plugin-notification";
+import type { Update } from "@tauri-apps/plugin-updater";
+import { findUpdate, getVersion, installUpdate } from "../lib/updates";
 import { Button, Field, Input, Panel, Segmented, Toggle } from "../components/ui";
 import { api, errorMessage } from "../lib/api";
 import type { AiProvider, Cadence, FollowUpSettings, LlmConfig } from "../lib/types";
@@ -51,6 +53,42 @@ const CADENCE_FIELDS: { key: keyof Cadence; label: string; unit: string }[] = [
   { key: "responded_subsequent", label: "Then keep in touch every", unit: "days" },
   { key: "interview_thankyou", label: "Thank-you note after an interview", unit: "days" },
 ];
+
+function UpdatesPanel() {
+  const { data: version } = useQuery({ queryKey: ["app-version"], queryFn: getVersion });
+  const [state, setState] = useState<{ kind: "idle" | "checking" | "current" | "error" } | { kind: "available"; update: Update }>({ kind: "idle" });
+  const run = async () => {
+    setState({ kind: "checking" });
+    try {
+      const update = await findUpdate();
+      setState(update ? { kind: "available", update } : { kind: "current" });
+    } catch (e) {
+      setState({ kind: "error" });
+      toast.error(`Couldn't check for updates: ${errorMessage(e)}`);
+    }
+  };
+  return (
+    <Panel className="flex items-center gap-3 px-4 py-3">
+      <div className="flex-1">
+        <p className="text-body font-medium">Waypoint {version ?? ""}</p>
+        <p className="text-callout text-ink-3">
+          {state.kind === "available"
+            ? `Version ${state.update.version} is ready to install.`
+            : state.kind === "current"
+              ? "You have the latest version."
+              : state.kind === "error"
+                ? "The update server couldn't be reached."
+                : "Updates are signed and checked before they install. Waypoint looks for one each time it starts."}
+        </p>
+      </div>
+      {state.kind === "available" ? (
+        <Button variant="primary" onClick={() => installUpdate(state.update)}>Install and restart</Button>
+      ) : (
+        <Button busy={state.kind === "checking"} onClick={run}>Check for updates</Button>
+      )}
+    </Panel>
+  );
+}
 
 function FollowUpPanel() {
   const qc = useQueryClient();
@@ -236,6 +274,11 @@ export function Settings() {
               </Button>
             </div>
           </Panel>
+
+          <section>
+            <h2 className="mb-3 text-headline font-semibold">Updates</h2>
+            <UpdatesPanel />
+          </section>
 
           <section>
             <h2 className="mb-3 text-headline font-semibold">Follow-up reminders</h2>

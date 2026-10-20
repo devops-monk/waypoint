@@ -9,6 +9,7 @@ import { Sources } from "./views/Sources";
 import { ProfileView } from "./views/Profile";
 import { Settings } from "./views/Settings";
 import { Documents, type DocKind } from "./views/Documents";
+import { checkOnLaunch } from "./lib/updates";
 
 export default function App() {
   const [view, setView] = useState<View>("discover");
@@ -16,6 +17,10 @@ export default function App() {
   const [addOpen, setAddOpen] = useState(false);
   const [focusJob, setFocusJob] = useState<number | null>(null);
   const [docTarget, setDocTarget] = useState<{ jobId: number | null; kind: DocKind }>({ jobId: null, kind: "resume" });
+
+  useEffect(() => {
+    if (import.meta.env.PROD) checkOnLaunch();
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

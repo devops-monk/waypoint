@@ -338,8 +338,8 @@
           <h3>macOS</h3>
           <p class="req">Apple silicon or Intel</p>
           <ul>
-            <li><a href="downloads/Waypoint_0.1.0_aarch64.dmg" download><span>Apple silicon <small>(M1 and later)</small></span><span>29 MB</span></a></li>
-            <li><a href="downloads/Waypoint_0.1.0_x64.dmg" download><span>Intel</span><span>30 MB</span></a></li>
+            <li><a href="downloads/Waypoint_0.1.0_aarch64.dmg" data-file="mac_arm" download><span>Apple silicon <small>(M1 and later)</small></span><span>29 MB</span></a></li>
+            <li><a href="downloads/Waypoint_0.1.0_x64.dmg" data-file="mac_intel" download><span>Intel</span><span>30 MB</span></a></li>
           </ul>
           <p class="note">This early build isn't signed yet. The first time, right-click Waypoint in Applications and choose Open.</p>
         </div>
@@ -347,8 +347,8 @@
           <h3>Windows</h3>
           <p class="req">Windows 10 or 11, 64-bit</p>
           <ul>
-            <li><a href="downloads/Waypoint_0.1.0_x64-setup.exe" download><span>Installer (.exe)</span><span>19 MB</span></a></li>
-            <li><a href="downloads/Waypoint_0.1.0_x64_en-US.msi" download><span>MSI package</span><span>28 MB</span></a></li>
+            <li><a href="downloads/Waypoint_0.1.0_x64-setup.exe" data-file="win_exe" download><span>Installer (.exe)</span><span>19 MB</span></a></li>
+            <li><a href="downloads/Waypoint_0.1.0_x64_en-US.msi" data-file="win_msi" download><span>MSI package</span><span>28 MB</span></a></li>
           </ul>
           <p class="note">If SmartScreen warns you, choose More info, then Run anyway.</p>
         </div>
@@ -356,15 +356,15 @@
           <h3>Linux</h3>
           <p class="req">64-bit, with WebKitGTK 4.1</p>
           <ul>
-            <li><a href="downloads/Waypoint_0.1.0_amd64.AppImage" download><span>AppImage <small>(any distro)</small></span><span>104 MB</span></a></li>
-            <li><a href="downloads/Waypoint_0.1.0_amd64.deb" download><span>Ubuntu, Debian (.deb)</span><span>33 MB</span></a></li>
-            <li><a href="downloads/Waypoint-0.1.0-1.x86_64.rpm" download><span>Fedora (.rpm)</span><span>33 MB</span></a></li>
+            <li><a href="downloads/Waypoint_0.1.0_amd64.AppImage" data-file="linux_appimage" download><span>AppImage <small>(any distro)</small></span><span>104 MB</span></a></li>
+            <li><a href="downloads/Waypoint_0.1.0_amd64.deb" data-file="linux_deb" download><span>Ubuntu, Debian (.deb)</span><span>33 MB</span></a></li>
+            <li><a href="downloads/Waypoint-0.1.0-1.x86_64.rpm" data-file="linux_rpm" download><span>Fedora (.rpm)</span><span>33 MB</span></a></li>
           </ul>
           <p class="note">Make the AppImage executable with <code>chmod +x</code>, then run it.</p>
         </div>
       </div>
       <p class="needs">To score jobs and tailor documents, add a key from Anthropic, OpenAI or OpenRouter in Settings, or install Ollama to run a model locally for free. Finding and tracking jobs works without one.</p>
-      <p class="needs"><a href="downloads/SHA256SUMS.txt">SHA-256 checksums</a></p>
+      <p class="needs"><a href="downloads/SHA256SUMS.txt" data-checksums>SHA-256 checksums</a></p>
     </div>
   </section>
 </main>
@@ -394,6 +394,29 @@
       // On Apple silicon vs Intel the browser can't always tell; the section lets people choose.
       if (os !== "mac" && first) btn.href = first.getAttribute("href");
     }
+  })();
+
+  // Fill in the latest release from the manifest the Publish workflow writes.
+  (function () {
+    fetch("downloads/manifest.json", { cache: "no-cache" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (m) {
+        if (!m || !m.files) return;
+        document.querySelectorAll("[data-version]").forEach(function (el) { el.textContent = m.version; });
+        var sums = document.querySelector("[data-checksums]");
+        if (sums && m.checksums) sums.href = m.checksums;
+        document.querySelectorAll("a[data-file]").forEach(function (a) {
+          var f = m.files[a.getAttribute("data-file")];
+          if (!f) return;
+          a.href = f.url;
+          var size = a.querySelector("span:last-child");
+          if (size) size.textContent = Math.round(f.size / 1048576) + " MB";
+        });
+        var btn = document.getElementById("primary-download");
+        var here = document.querySelector(".platform.here a[data-file]");
+        if (here && !document.querySelector('.platform.here[data-os="mac"]')) btn.href = here.href;
+      })
+      .catch(function () { /* keep the built-in links */ });
   })();
 
   // Reveal chapters once, and light the route as it scrolls into view.

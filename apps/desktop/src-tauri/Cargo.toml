@@ -32,3 +32,5 @@ keyring = { version = "3", features = ["apple-native", "windows-native", "linux-
 window-vibrancy = "0.6"
 pdf-extract = "0.9"
 tauri-plugin-notification = "=2.5.1"
+tauri-plugin-updater = "=2.13.1"
+tauri-plugin-process = "=2.4.0"

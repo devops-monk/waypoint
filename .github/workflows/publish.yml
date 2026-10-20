@@ -1,0 +1,71 @@
+# Runs when a release is published (or by hand for a given tag): copies the installers to
+# waypoint.devops-monk.com/downloads/<version>/, then updates the website's download
+# manifest and the in-app update feed. The feed goes last, so an app never sees an
+# update whose files aren't there yet.
+#
+# Secrets: VPS_DEPLOY_KEY (a key that can only rsync into /var/www/waypoint) and
+# VPS_KNOWN_HOSTS (the server's SSH host keys).
+name: Publish to website
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish, e.g. v0.1.1
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-website
+  cancel-in-progress: false
+
+env:
+  TAG: ${{ github.event.release.tag_name || inputs.tag }}
+  SITE: https://waypoint.devops-monk.com
+  DEST: waypoint-deploy@168.231.79.163
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download the release files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$TAG" -R "$GITHUB_REPOSITORY" -D assets \
+            --pattern '*.dmg' --pattern '*.exe' --pattern '*.msi' --pattern '*.AppImage' \
+            --pattern '*.deb' --pattern '*.rpm' --pattern '*.app.tar.gz' --pattern '*.sig'
+          gh release view "$TAG" -R "$GITHUB_REPOSITORY" --json body --jq .body > notes.md
+          ls -la assets
+
+      - name: Build the download manifest and update feed
+        run: python3 scripts/release_manifest.py assets "$TAG" "$SITE" out notes.md
+
+      - name: Set up the deploy key
+        env:
+          DEPLOY_KEY: ${{ secrets.VPS_DEPLOY_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Upload installers, then manifest, then update feed
+        run: |
+          VERSION="${TAG#v}"
+          RSYNC="rsync -rt --chmod=D755,F644 -e 'ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes -o BatchMode=yes'"
+          eval $RSYNC --mkpath assets/ "$DEST:downloads/$VERSION/"
+          eval $RSYNC out/manifest.json "$DEST:downloads/manifest.json"
+          eval $RSYNC --mkpath out/latest.json "$DEST:updates/latest.json"
+
+      - name: Check it's live
+        run: |
+          VERSION="${TAG#v}"
+          curl -fsS "$SITE/updates/latest.json" | python3 -c "import json,sys; v=json.load(sys.stdin)['version']; assert v=='$VERSION', v; print('update feed:', v)"
+          curl -fsS "$SITE/downloads/manifest.json" | python3 -c "import json,sys; m=json.load(sys.stdin); print('downloads:', m['version'], len(m['files']), 'files')"

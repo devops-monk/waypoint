@@ -63,7 +63,10 @@ GitHub Actions builds every OS (`.github/workflows/release.yml`):
 
 1. Bump `version` in `apps/desktop/src-tauri/tauri.conf.json` and the workspace `Cargo.toml`, and commit.
 2. Push a matching tag: `git tag v0.1.0 && git push origin v0.1.0`.
-3. The workflow builds macOS (Apple silicon and Intel), Windows and Linux, and attaches the installers to a **draft** release. Check it on the Releases page and publish.
+3. The workflow builds macOS (Apple silicon and Intel), Windows and Linux, signs the update bundles, and attaches everything to a **draft** release. Check it on the Releases page.
+4. Publish the release. `.github/workflows/publish.yml` then copies the installers to `waypoint.devops-monk.com/downloads/<version>/`, updates the website's download links, and writes the update feed at `/updates/latest.json`. Installed copies of Waypoint find the update on their next launch, verify its signature, and offer to install it (AppImage, macOS and Windows; `.deb` and `.rpm` users download the new package).
+
+Update signing uses a key pair made with `tauri signer generate`: the public key is in `tauri.conf.json`, the private key is at `~/.tauri/waypoint-updater.key` (password in your macOS Keychain as `waypoint-updater-key-password`) and in the repo secrets `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. Keep a backup of it: without it, existing installs can't verify future updates. A local `pnpm tauri build` needs those two variables set too.
 
 Every push and pull request also runs `.github/workflows/ci.yml`: Rust tests, clippy and the frontend type check.
 
@@ -71,7 +74,7 @@ Builds are unsigned for now, so macOS and Windows warn on first launch. To sign,
 
 ## Website
 
-`website/` is the static site at https://waypoint.devops-monk.com (one HTML file, screenshots in `website/assets`). Run `website/deploy.sh` to publish it, or `website/deploy.sh v0.2.0` to also upload that release's installers to `/downloads`. The server's nginx config lives at `/etc/nginx/sites-available/waypoint`, with HTTPS from certbot.
+`website/` is the static site at https://waypoint.devops-monk.com (one HTML file, screenshots in `website/assets`). Run `website/deploy.sh` to publish the page itself. Download links and the version shown come from `/downloads/manifest.json`, which the Publish workflow writes for each release. The server's nginx config lives at `/etc/nginx/sites-available/waypoint`, with HTTPS from certbot.
 
 ## Principles
 

@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Waypoint",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "identifier": "app.waypoint.desktop",
   "build": {
     "beforeDevCommand": "pnpm dev",
@@ -23,7 +23,10 @@
         "transparent": true,
         "titleBarStyle": "Overlay",
         "hiddenTitle": true,
-        "trafficLightPosition": { "x": 18, "y": 22 }
+        "trafficLightPosition": {
+          "x": 18,
+          "y": 22
+        }
       }
     ],
     "security": {
@@ -35,6 +38,24 @@
     "targets": "all",
     "category": "Productivity",
     "shortDescription": "Honest, private job search copilot",
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"]
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDcwQUQ0NEY5NDM5QUZFMDMKUldRRC9wcEQrVVN0Y0g3SFA4YzR0Rmo5OWhjM2FFYy9WY1M4dlNJa0VvbHBVNHJTVC9WT254Q3QK",
+      "endpoints": [
+        "https://waypoint.devops-monk.com/updates/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }
