@@ -255,7 +255,8 @@ impl Db {
         if from == to.as_str() {
             return Ok(());
         }
-        sqlx::query("UPDATE job SET status = ?, status_at = ? WHERE id = ?").bind(to.as_str()).bind(&now).bind(id).execute(&mut *tx).await?;
+        // A new status restarts the follow-up clock, so an old snooze no longer applies.
+        sqlx::query("UPDATE job SET status = ?, status_at = ?, follow_up_snooze = NULL WHERE id = ?").bind(to.as_str()).bind(&now).bind(id).execute(&mut *tx).await?;
         sqlx::query("INSERT INTO status_event (job_id, from_status, to_status, at, note) VALUES (?, ?, ?, ?, ?)")
             .bind(id)
             .bind(&from)
@@ -438,6 +439,87 @@ impl Db {
         }))
     }
 
+    // ── Follow-ups ──────────────────────────────────────────────────────
+
+    /// Jobs in a status that gets reminders, with their logged touches.
+    pub async fn follow_up_jobs(&self) -> Result<Vec<FollowUpJob>> {
+        let rows = sqlx::query(
+            "SELECT id, company, title, location, url, status, status_at, follow_up_snooze, follow_up_off, follow_up_notified
+             FROM job WHERE status IN ('applied', 'responded', 'assessment', 'interview') ORDER BY status_at",
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        let touches = sqlx::query("SELECT f.job_id, f.at FROM follow_up f JOIN job j ON j.id = f.job_id WHERE j.status IN ('applied', 'responded', 'assessment', 'interview')")
+            .fetch_all(&self.pool)
+            .await?;
+        let date = |s: Option<String>| s.and_then(|s| chrono::NaiveDate::parse_from_str(&s, "%Y-%m-%d").ok());
+        Ok(rows
+            .iter()
+            .map(|r| {
+                let id: i64 = r.get("id");
+                FollowUpJob {
+                    id,
+                    company: r.get("company"),
+                    title: r.get("title"),
+                    location: r.get("location"),
+                    url: r.get("url"),
+                    status: status_from(r),
+                    status_at: ts_req(r.get("status_at")),
+                    touches: touches.iter().filter(|t| t.get::<i64, _>("job_id") == id).map(|t| ts_req(t.get("at"))).collect(),
+                    snooze_until: date(r.get("follow_up_snooze")),
+                    off: r.get::<i64, _>("follow_up_off") != 0,
+                    notified_on: date(r.get("follow_up_notified")),
+                }
+            })
+            .collect())
+    }
+
+    /// Log a touch. It also ends any snooze: the schedule picks up from this touch.
+    pub async fn log_touch(&self, job_id: i64, kind: &str, channel: &str, note: &str) -> Result<i64> {
+        let mut tx = self.pool.begin().await?;
+        let id = sqlx::query_scalar("INSERT INTO follow_up (job_id, kind, channel, note, at) VALUES (?, ?, ?, ?, ?) RETURNING id")
+            .bind(job_id)
+            .bind(kind)
+            .bind(channel)
+            .bind(note)
+            .bind(Utc::now().to_rfc3339())
+            .fetch_one(&mut *tx)
+            .await?;
+        sqlx::query("UPDATE job SET follow_up_snooze = NULL WHERE id = ?").bind(job_id).execute(&mut *tx).await?;
+        tx.commit().await?;
+        Ok(id)
+    }
+
+    pub async fn delete_touch(&self, id: i64) -> Result<()> {
+        sqlx::query("DELETE FROM follow_up WHERE id = ?").bind(id).execute(&self.pool).await?;
+        Ok(())
+    }
+
+    pub async fn touches(&self, job_id: i64) -> Result<Vec<Touch>> {
+        let rows = sqlx::query("SELECT * FROM follow_up WHERE job_id = ? ORDER BY at DESC, id DESC").bind(job_id).fetch_all(&self.pool).await?;
+        Ok(rows
+            .iter()
+            .map(|r| Touch { id: r.get("id"), job_id: r.get("job_id"), kind: r.get("kind"), channel: r.get("channel"), note: r.get("note"), at: ts_req(r.get("at")) })
+            .collect())
+    }
+
+    pub async fn set_follow_up_snooze(&self, job_id: i64, until: Option<chrono::NaiveDate>) -> Result<()> {
+        sqlx::query("UPDATE job SET follow_up_snooze = ? WHERE id = ?").bind(until.map(|d| d.to_string())).bind(job_id).execute(&self.pool).await?;
+        Ok(())
+    }
+
+    pub async fn set_follow_up_off(&self, job_id: i64, off: bool) -> Result<()> {
+        sqlx::query("UPDATE job SET follow_up_off = ? WHERE id = ?").bind(off as i64).bind(job_id).execute(&self.pool).await?;
+        Ok(())
+    }
+
+    pub async fn mark_follow_up_notified(&self, job_ids: &[i64], on: chrono::NaiveDate) -> Result<()> {
+        for id in job_ids {
+            sqlx::query("UPDATE job SET follow_up_notified = ? WHERE id = ?").bind(on.to_string()).bind(id).execute(&self.pool).await?;
+        }
+        Ok(())
+    }
+
     // ── Cover letters ───────────────────────────────────────────────────
 
     pub async fn save_cover_letter(&self, job_id: Option<i64>, template: &str, data: &serde_json::Value, notes: Option<&serde_json::Value>, file_path: Option<&str>) -> Result<i64> {
@@ -579,6 +661,35 @@ mod tests {
         db.record_ai_call("cover_review", Some(job), "claude-opus-5-5", 1200, 300).await.unwrap();
         let usage = db.token_usage().await.unwrap();
         assert_eq!(usage, vec![("claude-opus-5-5".to_string(), 2, 2200, 700)]);
+    }
+
+    #[tokio::test]
+    async fn follow_ups_track_touches_snoozes_and_status_changes() {
+        let db = Db::in_memory().await.unwrap();
+        db.upsert_jobs(&[draft("A", "https://x.test/1"), draft("B", "https://x.test/2")]).await.unwrap();
+        let jobs = db.list_jobs(&JobFilter::default()).await.unwrap();
+        let (a, b) = (jobs[0].id, jobs[1].id);
+        db.set_status(a, Status::Applied, "").await.unwrap();
+        db.set_status(b, Status::Saved, "").await.unwrap();
+        let tracked = db.follow_up_jobs().await.unwrap();
+        assert_eq!(tracked.iter().map(|j| j.id).collect::<Vec<_>>(), vec![a], "saved roles get no reminders");
+
+        let soon = chrono::NaiveDate::from_ymd_opt(2030, 1, 1).unwrap();
+        db.set_follow_up_snooze(a, Some(soon)).await.unwrap();
+        assert_eq!(db.follow_up_jobs().await.unwrap()[0].snooze_until, Some(soon));
+        db.log_touch(a, "follow_up", "email", "Checked in with the recruiter").await.unwrap();
+        let j = &db.follow_up_jobs().await.unwrap()[0];
+        assert_eq!((j.touches.len(), j.snooze_until), (1, None), "logging a touch ends the snooze");
+        assert_eq!(db.touches(a).await.unwrap()[0].note, "Checked in with the recruiter");
+
+        db.set_follow_up_snooze(a, Some(soon)).await.unwrap();
+        db.set_status(a, Status::Interview, "").await.unwrap();
+        assert_eq!(db.follow_up_jobs().await.unwrap()[0].snooze_until, None, "a new status clears the snooze");
+        db.set_follow_up_off(a, true).await.unwrap();
+        db.mark_follow_up_notified(&[a], soon).await.unwrap();
+        let j = &db.follow_up_jobs().await.unwrap()[0];
+        assert!(j.off);
+        assert_eq!(j.notified_on, Some(soon));
     }
 
     #[tokio::test]

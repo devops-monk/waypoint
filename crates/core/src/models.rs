@@ -147,3 +147,30 @@ pub struct StoredLetter {
     pub file_path: Option<String>,
     pub created_at: DateTime<Utc>,
 }
+
+/// A job that gets follow-up reminders, with everything the schedule needs.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FollowUpJob {
+    pub id: i64,
+    pub company: String,
+    pub title: String,
+    pub location: String,
+    pub url: String,
+    pub status: Status,
+    pub status_at: DateTime<Utc>,
+    pub touches: Vec<DateTime<Utc>>,
+    pub snooze_until: Option<chrono::NaiveDate>,
+    pub off: bool,
+    pub notified_on: Option<chrono::NaiveDate>,
+}
+
+/// One logged follow-up.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Touch {
+    pub id: i64,
+    pub job_id: i64,
+    pub kind: String,
+    pub channel: String,
+    pub note: String,
+    pub at: DateTime<Utc>,
+}

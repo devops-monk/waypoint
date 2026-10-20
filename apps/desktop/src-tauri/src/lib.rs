@@ -1,4 +1,5 @@
 mod commands;
+mod followup_cmds;
 mod letter_cmds;
 mod resume_cmds;
 mod secrets;
@@ -38,6 +39,7 @@ pub fn run() {
         .plugin(tauri_plugin_window_state::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
             let db = tauri::async_runtime::block_on(Db::open(&data_dir.join("waypoint.db")))?;
@@ -45,6 +47,7 @@ pub fn run() {
             if let Some(window) = app.get_webview_window("main") {
                 apply_window_material(&window);
             }
+            followup_cmds::start_notifier(app.handle().clone());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -81,6 +84,14 @@ pub fn run() {
             resume_cmds::resume_save,
             resume_cmds::resume_export,
             resume_cmds::resume_ats,
+            followup_cmds::followups,
+            followup_cmds::followup_log,
+            followup_cmds::followup_history,
+            followup_cmds::followup_delete,
+            followup_cmds::followup_snooze,
+            followup_cmds::followup_set_off,
+            followup_cmds::save_followup_settings,
+            followup_cmds::followup_draft,
             letter_cmds::letter_load,
             letter_cmds::letter_write,
             letter_cmds::letter_render,

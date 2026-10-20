@@ -2,6 +2,7 @@
 //! app never parses free-form prose, and every call reports token usage for the cost panel.
 
 pub mod cover;
+pub mod followup;
 mod anthropic;
 mod openai;
 pub mod prompts;

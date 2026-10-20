@@ -31,3 +31,4 @@ tauri-plugin-window-state = "2"
 keyring = { version = "3", features = ["apple-native", "windows-native", "linux-native-sync-persistent", "crypto-rust"] }
 window-vibrancy = "0.6"
 pdf-extract = "0.9"
+tauri-plugin-notification = "=2.5.1"

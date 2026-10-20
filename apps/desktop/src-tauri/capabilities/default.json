@@ -10,6 +10,7 @@
     "opener:allow-reveal-item-in-dir",
     "dialog:allow-open",
     "dialog:allow-save",
-    "window-state:default"
+    "window-state:default",
+    "notification:default"
   ]
 }
