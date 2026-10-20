@@ -8,7 +8,7 @@ import { Kbd } from "./ui";
 
 export type View = "discover" | "pipeline" | "resume" | "sources" | "profile" | "settings";
 
-function NavItem({ active, icon, label, count, onClick }: { active: boolean; icon: ReactNode; label: string; count?: number; onClick: () => void }) {
+function NavItem({ active, icon, label, count, alert, onClick }: { active: boolean; icon: ReactNode; label: string; count?: number; alert?: string; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
@@ -20,6 +20,7 @@ function NavItem({ active, icon, label, count, onClick }: { active: boolean; ico
     >
       <span className={clsx("flex size-4 items-center justify-center", active ? "text-selection" : "text-ink-3")}>{icon}</span>
       <span className="flex-1 text-left">{label}</span>
+      {alert && <span className="size-1.5 rounded-full bg-amber" title={alert} aria-label={alert} />}
       {count != null && count > 0 && <span className="tabular text-callout text-ink-3">{count}</span>}
     </button>
   );
@@ -28,6 +29,8 @@ function NavItem({ active, icon, label, count, onClick }: { active: boolean; ico
 export function Sidebar({ view, onNavigate, onAdd, onSearch }: { view: View; onNavigate: (v: View) => void; onAdd: () => void; onSearch: () => void }) {
   const { data: counts } = useQuery({ queryKey: ["pipeline-counts"], queryFn: api.pipelineCounts, refetchInterval: 30_000 });
   const count = (pred: (s: string) => boolean) => counts?.filter((c) => pred(c.status)).reduce((a, c) => a + c.count, 0) ?? 0;
+  const { data: followups } = useQuery({ queryKey: ["followups"], queryFn: api.followups, refetchInterval: 60_000 });
+  const dueCount = followups?.items.filter((i) => i.urgency === "urgent" || i.urgency === "due").length ?? 0;
   const inbox = count((s) => s === "new");
   const active = count((s) => s !== "new" && !EXITS.includes(s as never));
 
@@ -46,7 +49,7 @@ export function Sidebar({ view, onNavigate, onAdd, onSearch }: { view: View; onN
         </button>
         <nav className="flex flex-col gap-0.5">
           <NavItem active={view === "discover"} icon={<Inbox className="size-4" />} label="Discover" count={inbox} onClick={() => onNavigate("discover")} />
-          <NavItem active={view === "pipeline"} icon={<SquareKanban className="size-4" />} label="Pipeline" count={active} onClick={() => onNavigate("pipeline")} />
+          <NavItem active={view === "pipeline"} icon={<SquareKanban className="size-4" />} label="Pipeline" count={active} alert={dueCount ? `${dueCount} follow-up${dueCount === 1 ? "" : "s"} due` : undefined} onClick={() => onNavigate("pipeline")} />
           <NavItem active={view === "resume"} icon={<FileText className="size-4" />} label="Documents" onClick={() => onNavigate("resume")} />
           <NavItem active={view === "sources"} icon={<Building2 className="size-4" />} label="Companies" onClick={() => onNavigate("sources")} />
         </nav>

@@ -23,6 +23,10 @@ import type {
   Template,
   LetterDoc,
   LetterState,
+  FollowUpAction,
+  FollowUpBoard,
+  FollowUpSettings,
+  Touch,
 } from "./types";
 
 // One typed wrapper per Rust command. Argument names follow Tauri's camelCase convention.
@@ -67,6 +71,15 @@ export const api = {
   resumeExport: (jobId: number | null, doc: ResumeDoc, template: Template, path: string) =>
     invoke<{ path: string; ats: AtsReport }>("resume_export", { req: { job_id: jobId, doc, template, path } }),
   resumeAts: (jobId: number | null, doc: ResumeDoc, template: Template) => invoke<AtsReport>("resume_ats", { jobId, doc, template }),
+
+  followups: () => invoke<FollowUpBoard>("followups"),
+  followupLog: (jobId: number, kind: FollowUpAction, channel: string, note: string) => invoke<number>("followup_log", { jobId, kind, channel, note }),
+  followupHistory: (jobId: number) => invoke<Touch[]>("followup_history", { jobId }),
+  followupDelete: (id: number) => invoke<void>("followup_delete", { id }),
+  followupSnooze: (jobId: number, days: number | null) => invoke<void>("followup_snooze", { jobId, days }),
+  followupSetOff: (jobId: number, off: boolean) => invoke<void>("followup_set_off", { jobId, off }),
+  saveFollowupSettings: (settings: FollowUpSettings) => invoke<void>("save_followup_settings", { settings }),
+  followupDraft: (jobId: number, action: FollowUpAction, notes: string) => invoke<{ subject: string; body: string }>("followup_draft", { jobId, action, notes }),
 
   letterLoad: (jobId: number) => invoke<LetterState>("letter_load", { jobId }),
   letterWrite: (jobId: number) => invoke<LetterState>("letter_write", { jobId }),

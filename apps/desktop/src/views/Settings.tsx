@@ -4,9 +4,10 @@ import clsx from "clsx";
 import { Check, KeyRound, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Button, Field, Input, Panel, Segmented } from "../components/ui";
+import { isPermissionGranted, requestPermission } from "@tauri-apps/plugin-notification";
+import { Button, Field, Input, Panel, Segmented, Toggle } from "../components/ui";
 import { api, errorMessage } from "../lib/api";
-import type { AiProvider, LlmConfig } from "../lib/types";
+import type { AiProvider, Cadence, FollowUpSettings, LlmConfig } from "../lib/types";
 
 const PROVIDERS: { id: AiProvider; name: string; blurb: string; models: string[]; keyUrl?: string }[] = [
   { id: "anthropic", name: "Claude", blurb: "Anthropic's models. Strongest at careful, honest evaluation.", models: ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"], keyUrl: "https://console.anthropic.com/settings/keys" },
@@ -17,13 +18,13 @@ const PROVIDERS: { id: AiProvider; name: string; blurb: string; models: string[]
 
 function UsagePanel() {
   const { data: usage = [] } = useQuery({ queryKey: ["usage"], queryFn: api.tokenUsage });
-  if (!usage.length) return <p className="text-callout text-ink-3">No AI calls yet. Token use appears here after your first scored job.</p>;
+  if (!usage.length) return <p className="text-callout text-ink-3">No AI calls yet. Token use appears here after your first AI call.</p>;
   return (
     <table className="w-full text-callout">
       <thead>
         <tr className="text-left text-caption text-ink-3">
           <th className="pb-2 font-medium">Model</th>
-          <th className="pb-2 text-right font-medium">Jobs scored</th>
+          <th className="pb-2 text-right font-medium">AI calls</th>
           <th className="pb-2 text-right font-medium">Tokens in</th>
           <th className="pb-2 text-right font-medium">Tokens out</th>
         </tr>
@@ -39,6 +40,81 @@ function UsagePanel() {
         ))}
       </tbody>
     </table>
+  );
+}
+
+const CADENCE_FIELDS: { key: keyof Cadence; label: string; unit: string }[] = [
+  { key: "applied_first", label: "First follow-up after applying", unit: "days" },
+  { key: "applied_subsequent", label: "Next follow-up after that", unit: "days" },
+  { key: "applied_max", label: "Stop after", unit: "follow-ups" },
+  { key: "responded_initial", label: "Reply to a recruiter within", unit: "days" },
+  { key: "responded_subsequent", label: "Then keep in touch every", unit: "days" },
+  { key: "interview_thankyou", label: "Thank-you note after an interview", unit: "days" },
+];
+
+function FollowUpPanel() {
+  const qc = useQueryClient();
+  const { data } = useQuery({ queryKey: ["followups"], queryFn: api.followups });
+  const [s, setS] = useState<FollowUpSettings | null>(null);
+  useEffect(() => {
+    if (data && !s) setS(data.settings);
+  }, [data, s]);
+  if (!s) return null;
+
+  const save = async (next: FollowUpSettings, quiet = false) => {
+    setS(next);
+    try {
+      await api.saveFollowupSettings(next);
+      qc.invalidateQueries({ queryKey: ["followups"] });
+      if (!quiet) toast.success("Follow-up timing saved");
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
+  };
+
+  const toggleNotify = async (on: boolean) => {
+    if (on) {
+      try {
+        if (!(await isPermissionGranted()) && (await requestPermission()) !== "granted") {
+          toast.error("Notifications are blocked. Allow Waypoint in your system's notification settings.");
+          return;
+        }
+      } catch {
+        // Some platforms don't report permission; sending still works.
+      }
+    }
+    save({ ...s, notify: on }, true);
+  };
+
+  return (
+    <Panel className="divide-y divide-hairline">
+      <div className="flex items-center gap-3 px-4 py-3">
+        <div className="flex-1">
+          <p className="text-body font-medium">Notify me when a follow-up is due</p>
+          <p className="text-callout text-ink-3">A system notification, at most once a day per job, while Waypoint is open.</p>
+        </div>
+        <Toggle checked={s.notify} onChange={toggleNotify} label="Follow-up notifications" />
+      </div>
+      <div className="flex flex-col gap-2.5 px-4 py-4">
+        {CADENCE_FIELDS.map((f) => (
+          <label key={f.key} className="flex items-center gap-3 text-callout">
+            <span className="flex-1 text-ink-2">{f.label}</span>
+            <Input
+              type="number"
+              min={1}
+              max={f.key === "applied_max" ? 5 : 60}
+              value={s.cadence[f.key]}
+              onChange={(e) => setS({ ...s, cadence: { ...s.cadence, [f.key]: Number(e.target.value) || 1 } })}
+              className="h-7 !w-16 shrink-0 text-right tabular"
+            />
+            <span className="w-20 shrink-0 text-ink-3">{f.unit}</span>
+          </label>
+        ))}
+      </div>
+      <div className="flex justify-end px-4 py-3">
+        <Button size="sm" onClick={() => save(s)}>Save timing</Button>
+      </div>
+    </Panel>
   );
 }
 
@@ -160,6 +236,11 @@ export function Settings() {
               </Button>
             </div>
           </Panel>
+
+          <section>
+            <h2 className="mb-3 text-headline font-semibold">Follow-up reminders</h2>
+            <FollowUpPanel />
+          </section>
 
           <section>
             <h2 className="mb-3 text-headline font-semibold">AI usage</h2>

@@ -4,13 +4,15 @@ import clsx from "clsx";
 import { useState } from "react";
 import { toast } from "sonner";
 import { FitBadge } from "../components/FitDial";
+import { Segmented } from "../components/ui";
+import { FollowUps } from "./FollowUps";
 import { api, errorMessage } from "../lib/api";
 import { EXITS, ROUTE, STATUS_LABEL } from "../lib/format";
 import type { JobSummary, Status } from "../lib/types";
 
 const COLUMNS: Status[] = ["saved", "evaluated", "applied", "responded", "assessment", "interview", "offer", "hired"];
 
-function Card({ job, onOpen, overlay }: { job: JobSummary; onOpen?: () => void; overlay?: boolean }) {
+function Card({ job, onOpen, overlay, due }: { job: JobSummary; onOpen?: () => void; overlay?: boolean; due?: string }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: job.id, data: job, disabled: overlay });
   return (
     <div
@@ -33,11 +35,17 @@ function Card({ job, onOpen, overlay }: { job: JobSummary; onOpen?: () => void; 
         <FitBadge score={job.score} band={job.band} />
       </div>
       <p className="mt-1.5 truncate text-caption text-ink-3">{job.location || "Location not listed"}</p>
+      {due && (
+        <p className="mt-1.5 flex items-center gap-1.5 text-caption font-medium text-amber">
+          <span className="size-1.5 rounded-full bg-amber" />
+          {due}
+        </p>
+      )}
     </div>
   );
 }
 
-function Column({ status, jobs, onOpen }: { status: Status; jobs: JobSummary[]; onOpen: (id: number) => void }) {
+function Column({ status, jobs, onOpen, due }: { status: Status; jobs: JobSummary[]; onOpen: (id: number) => void; due: Map<number, string> }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
   const onRoute = ROUTE.includes(status);
   return (
@@ -50,7 +58,7 @@ function Column({ status, jobs, onOpen }: { status: Status; jobs: JobSummary[]; 
       </header>
       <div className="scroll flex min-h-24 flex-1 flex-col gap-2 px-1 pb-4">
         {jobs.map((j) => (
-          <Card key={j.id} job={j} onOpen={() => onOpen(j.id)} />
+          <Card key={j.id} job={j} onOpen={() => onOpen(j.id)} due={due.get(j.id)} />
         ))}
         {jobs.length === 0 && <div className="rounded-[10px] border border-dashed border-fill-strong px-3 py-5 text-center text-caption text-ink-3">Drop a job here</div>}
       </div>
@@ -61,7 +69,14 @@ function Column({ status, jobs, onOpen }: { status: Status; jobs: JobSummary[]; 
 export function Pipeline({ onOpenJob }: { onOpenJob: (id: number) => void }) {
   const qc = useQueryClient();
   const { data: jobs = [] } = useQuery({ queryKey: ["jobs", "pipeline"], queryFn: () => api.listJobs({ statuses: [...COLUMNS, ...EXITS], limit: 2000 }) });
+  const { data: followups } = useQuery({ queryKey: ["followups"], queryFn: api.followups, refetchInterval: 60_000 });
+  const [tab, setTab] = useState<"board" | "followups">("board");
   const [dragging, setDragging] = useState<JobSummary | null>(null);
+  const due = new Map(
+    (followups?.items ?? [])
+      .filter((i) => i.urgency === "urgent" || i.urgency === "due")
+      .map((i) => [i.job_id, i.action === "reply" ? "Reply due" : i.action === "thank_you" ? "Thank-you due" : "Follow-up due"] as const),
+  );
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
   const byStatus = (s: Status) => jobs.filter((j) => j.status === s);
@@ -90,20 +105,28 @@ export function Pipeline({ onOpenJob }: { onOpenJob: (id: number) => void }) {
         <span className="text-callout text-ink-3" data-tauri-drag-region>
           {jobs.length - closed.length} active{closed.length ? `, ${closed.length} closed` : ""}
         </span>
+        <div className="flex-1" data-tauri-drag-region />
+        <Segmented value={tab} onChange={setTab} options={[{ value: "board", label: "Board" }, { value: "followups", label: due.size ? `Follow-ups (${due.size})` : "Follow-ups" }]} />
       </header>
+      {tab === "followups" ? (
+        <FollowUps onOpenJob={onOpenJob} />
+      ) : (
+      <>
       <DndContext sensors={sensors} onDragStart={(e) => setDragging(e.active.data.current as JobSummary)} onDragEnd={onDragEnd} onDragCancel={() => setDragging(null)}>
         <div className="scroll flex min-h-0 flex-1 gap-3 overflow-x-auto p-4">
           {COLUMNS.map((s) => (
-            <Column key={s} status={s} jobs={byStatus(s)} onOpen={onOpenJob} />
+            <Column key={s} status={s} jobs={byStatus(s)} onOpen={onOpenJob} due={due} />
           ))}
           <div className="mx-1 w-px shrink-0 self-stretch bg-hairline" />
           {EXITS.map((s) => (
-            <Column key={s} status={s} jobs={byStatus(s)} onOpen={onOpenJob} />
+            <Column key={s} status={s} jobs={byStatus(s)} onOpen={onOpenJob} due={due} />
           ))}
         </div>
         <DragOverlay dropAnimation={{ duration: 180, easing: "cubic-bezier(0.32, 0.72, 0, 1)" }}>{dragging && <Card job={dragging} overlay />}</DragOverlay>
       </DndContext>
       <p className="shrink-0 border-t border-hairline px-4 py-2 text-caption text-ink-3">Drag cards between stages. Double-click a card to open it.</p>
+      </>
+      )}
     </div>
   );
 }

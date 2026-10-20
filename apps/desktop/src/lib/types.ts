@@ -312,3 +312,52 @@ export interface LetterState {
   exported_to: string | null;
   fit_warning: string | null;
 }
+
+export type FollowUpUrgency = "urgent" | "due" | "waiting" | "cold" | "off";
+export type FollowUpAction = "follow_up" | "reply" | "thank_you";
+
+export interface FollowUpItem {
+  job_id: number;
+  company: string;
+  title: string;
+  location: string;
+  url: string;
+  status: Status;
+  status_at: string;
+  days_in_status: number;
+  snoozed: boolean;
+  urgency: FollowUpUrgency;
+  action: FollowUpAction;
+  next_on: string | null;
+  touches: number;
+  last_touch: string | null;
+}
+
+export interface Cadence {
+  applied_first: number;
+  applied_subsequent: number;
+  applied_max: number;
+  responded_initial: number;
+  responded_subsequent: number;
+  interview_thankyou: number;
+}
+
+export interface FollowUpSettings {
+  cadence: Cadence;
+  notify: boolean;
+}
+
+export interface FollowUpBoard {
+  items: FollowUpItem[];
+  settings: FollowUpSettings;
+  today: string;
+}
+
+export interface Touch {
+  id: number;
+  job_id: number;
+  kind: FollowUpAction;
+  channel: string;
+  note: string;
+  at: string;
+}
