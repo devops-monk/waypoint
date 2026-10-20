@@ -233,7 +233,7 @@ export function ResumeStudio({ jobId, job, leading }: { jobId: number | null; jo
   const [issues, setIssues] = useState<FactIssue[]>([]);
   const [renderError, setRenderError] = useState<string | null>(null);
   const [ats, setAts] = useState<AtsReport | null>(null);
-  const [busy, setBusy] = useState<"tailor" | "export" | "ats" | "save" | null>(null);
+  const [busy, setBusy] = useState<"tailor" | "export" | "word" | "ats" | "save" | null>(null);
   const renderSeq = useRef(0);
 
   useEffect(() => {
@@ -318,18 +318,19 @@ export function ResumeStudio({ jobId, job, leading }: { jobId: number | null; jo
     }
   };
 
-  const exportPdf = async () => {
+  const exportFile = async (format: "pdf" | "docx") => {
     if (!doc) return;
     const base = [doc.name || "Resume", job?.company].filter(Boolean).join(" - ");
-    const path = await save({ defaultPath: `${base}.pdf`, filters: [{ name: "PDF", extensions: ["pdf"] }] });
+    const filter = format === "pdf" ? { name: "PDF", extensions: ["pdf"] } : { name: "Word document", extensions: ["docx"] };
+    const path = await save({ defaultPath: `${base}.${format}`, filters: [filter] });
     if (!path) return;
-    setBusy("export");
+    setBusy(format === "pdf" ? "export" : "word");
     try {
-      const r = await api.resumeExport(jobId, doc, template, path);
+      const r = await api.resumeExport(jobId, doc, template, path, format);
       setAts(r.ats);
       setSavedAt(new Date().toISOString());
       setDirty(false);
-      toast.success("Resume exported", { action: { label: "Show file", onClick: () => revealItemInDir(r.path) } });
+      toast.success(format === "pdf" ? "Resume exported as PDF" : "Resume exported as a Word file", { action: { label: "Show file", onClick: () => revealItemInDir(r.path) } });
     } catch (e) {
       toast.error(errorMessage(e));
     } finally {
@@ -354,7 +355,10 @@ export function ResumeStudio({ jobId, job, leading }: { jobId: number | null; jo
           </Button>
         )}
         <Button variant="plain" busy={busy === "save"} disabled={!dirty || !!proposal} onClick={saveVersion}>Save</Button>
-        <Button variant="primary" busy={busy === "export"} disabled={!!proposal || blocks > 0} icon={<FileDown className="size-3.5" />} onClick={exportPdf} title={blocks > 0 ? "Fix the fact-check issues first" : undefined}>
+        <Button busy={busy === "word"} disabled={!!proposal || blocks > 0} onClick={() => exportFile("docx")} title={blocks > 0 ? "Fix the fact-check issues first" : "Export as a Word document"}>
+          Word
+        </Button>
+        <Button variant="primary" busy={busy === "export"} disabled={!!proposal || blocks > 0} icon={<FileDown className="size-3.5" />} onClick={() => exportFile("pdf")} title={blocks > 0 ? "Fix the fact-check issues first" : undefined}>
           Export PDF
         </Button>
       </header>

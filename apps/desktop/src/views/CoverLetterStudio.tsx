@@ -228,7 +228,7 @@ export function CoverLetterStudio({ jobId, job, leading }: { jobId: number | nul
   const [issues, setIssues] = useState<FactIssue[]>([]);
   const [words, setWords] = useState(0);
   const [renderError, setRenderError] = useState<string | null>(null);
-  const [busy, setBusy] = useState<"write" | "save" | "export" | null>(null);
+  const [busy, setBusy] = useState<"write" | "save" | "export" | "word" | null>(null);
   const [stage, setStage] = useState<Stage | null>(null);
   const renderSeq = useRef(0);
 
@@ -336,17 +336,18 @@ export function CoverLetterStudio({ jobId, job, leading }: { jobId: number | nul
     }
   };
 
-  const exportPdf = async () => {
+  const exportFile = async (format: "pdf" | "docx") => {
     if (!doc) return;
     const base = [doc.name || "Cover letter", "Cover letter", job?.company].filter(Boolean).join(" - ");
-    const path = await save({ defaultPath: `${base}.pdf`, filters: [{ name: "PDF", extensions: ["pdf"] }] });
+    const filter = format === "pdf" ? { name: "PDF", extensions: ["pdf"] } : { name: "Word document", extensions: ["docx"] };
+    const path = await save({ defaultPath: `${base}.${format}`, filters: [filter] });
     if (!path) return;
-    setBusy("export");
+    setBusy(format === "pdf" ? "export" : "word");
     try {
-      const out = await api.letterExport(jobId, doc, template, path);
+      const out = await api.letterExport(jobId, doc, template, path, format);
       setSavedAt(new Date().toISOString());
       setDirty(false);
-      toast.success("Cover letter exported", { action: { label: "Show file", onClick: () => revealItemInDir(out) } });
+      toast.success(format === "pdf" ? "Cover letter exported as PDF" : "Cover letter exported as a Word file", { action: { label: "Show file", onClick: () => revealItemInDir(out) } });
     } catch (e) {
       toast.error(errorMessage(e));
     } finally {
@@ -370,7 +371,10 @@ export function CoverLetterStudio({ jobId, job, leading }: { jobId: number | nul
           </Button>
         )}
         <Button variant="plain" busy={busy === "save"} disabled={!dirty || !started} onClick={saveVersion}>Save</Button>
-        <Button variant="primary" busy={busy === "export"} disabled={!started || blocks > 0 || writing} icon={<FileDown className="size-3.5" />} onClick={exportPdf} title={blocks > 0 ? "Fix the fact-check issues first" : undefined}>
+        <Button busy={busy === "word"} disabled={!started || blocks > 0 || writing} onClick={() => exportFile("docx")} title={blocks > 0 ? "Fix the fact-check issues first" : "Export as a Word document"}>
+          Word
+        </Button>
+        <Button variant="primary" busy={busy === "export"} disabled={!started || blocks > 0 || writing} icon={<FileDown className="size-3.5" />} onClick={() => exportFile("pdf")} title={blocks > 0 ? "Fix the fact-check issues first" : undefined}>
           Export PDF
         </Button>
       </header>

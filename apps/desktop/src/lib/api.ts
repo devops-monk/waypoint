@@ -68,8 +68,8 @@ export const api = {
   resumeRender: (doc: ResumeDoc, template: Template) => invoke<{ pages: string[]; issues: FactIssue[] }>("resume_render", { doc, template }),
   resumeTailor: (jobId: number) => invoke<Proposal>("resume_tailor", { jobId }),
   resumeSave: (jobId: number | null, doc: ResumeDoc, template: Template) => invoke<number>("resume_save", { jobId, doc, template }),
-  resumeExport: (jobId: number | null, doc: ResumeDoc, template: Template, path: string) =>
-    invoke<{ path: string; ats: AtsReport }>("resume_export", { req: { job_id: jobId, doc, template, path } }),
+  resumeExport: (jobId: number | null, doc: ResumeDoc, template: Template, path: string, format: "pdf" | "docx" = "pdf") =>
+    invoke<{ path: string; ats: AtsReport }>("resume_export", { req: { job_id: jobId, doc, template, path, format } }),
   resumeAts: (jobId: number | null, doc: ResumeDoc, template: Template) => invoke<AtsReport>("resume_ats", { jobId, doc, template }),
 
   followups: () => invoke<FollowUpBoard>("followups"),
@@ -86,8 +86,8 @@ export const api = {
   letterRender: (jobId: number, doc: LetterDoc, template: Template) =>
     invoke<{ pages: string[]; issues: FactIssue[]; words: number }>("letter_render", { jobId, doc, template }),
   letterSave: (jobId: number, doc: LetterDoc, template: Template) => invoke<number>("letter_save", { jobId, doc, template }),
-  letterExport: (jobId: number, doc: LetterDoc, template: Template, path: string) =>
-    invoke<string>("letter_export", { req: { job_id: jobId, doc, template, path } }),
+  letterExport: (jobId: number, doc: LetterDoc, template: Template, path: string, format: "pdf" | "docx" = "pdf") =>
+    invoke<string>("letter_export", { req: { job_id: jobId, doc, template, path, format } }),
 };
 
 export function errorMessage(e: unknown): string {

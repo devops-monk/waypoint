@@ -32,6 +32,7 @@ fn main() {
         std::fs::write(format!("{out}/{name}.pdf"), render::pdf(&d).unwrap()).unwrap();
         std::fs::write(format!("{out}/{name}.svg"), &render::svg_pages(&d)[0]).unwrap();
         println!("{name}: {} page(s)", d.pages().len());
+        std::fs::write(format!("{out}/{name}.docx"), waypoint_docs::word::resume(&doc, t).unwrap()).unwrap();
     }
 
     let mut letter = LetterDoc::with_header(&doc, "en");
@@ -55,5 +56,6 @@ fn main() {
         std::fs::write(format!("{out}/{name}.pdf"), render::pdf(&d).unwrap()).unwrap();
         std::fs::write(format!("{out}/{name}.svg"), &render::svg_pages(&d)[0]).unwrap();
         println!("{name}: {} page(s), {} words", d.pages().len(), letter.body_words());
+        std::fs::write(format!("{out}/{name}.docx"), waypoint_docs::word::letter(&letter, t).unwrap()).unwrap();
     }
 }

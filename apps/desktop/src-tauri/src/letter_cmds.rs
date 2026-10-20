@@ -214,6 +214,8 @@ pub struct ExportRequest {
     doc: LetterDoc,
     template: Template,
     path: String,
+    #[serde(default)]
+    format: crate::resume_cmds::Format,
 }
 
 #[tauri::command]
@@ -224,11 +226,15 @@ pub async fn letter_export(state: State<'_, AppState>, req: ExportRequest) -> Cm
     }
     let doc = req.doc.clone();
     let template = req.template;
-    let pdf = tauri::async_runtime::spawn_blocking(move || render::compile_letter(&doc, template).and_then(|d| render::pdf(&d)))
-        .await
-        .map_err(err)?
-        .map_err(err)?;
-    std::fs::write(&req.path, &pdf).map_err(|e| format!("Couldn't write {}: {e}", req.path))?;
+    let format = req.format;
+    let bytes = tauri::async_runtime::spawn_blocking(move || match format {
+        crate::resume_cmds::Format::Pdf => render::compile_letter(&doc, template).and_then(|d| render::pdf(&d)),
+        crate::resume_cmds::Format::Docx => waypoint_docs::word::letter(&doc, template),
+    })
+    .await
+    .map_err(err)?
+    .map_err(err)?;
+    std::fs::write(&req.path, &bytes).map_err(|e| format!("Couldn't write {}: {e}", req.path))?;
     let notes = latest_notes(&state, req.job_id).await;
     state.db.save_cover_letter(Some(req.job_id), template_id(req.template), &serde_json::to_value(&req.doc).map_err(err)?, notes.as_ref(), Some(&req.path)).await.map_err(err)?;
     Ok(req.path)

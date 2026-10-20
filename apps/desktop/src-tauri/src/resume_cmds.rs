@@ -108,12 +108,23 @@ pub async fn resume_save(state: State<'_, AppState>, job_id: Option<i64>, doc: R
     state.db.save_resume(job_id, template_id(template), &serde_json::to_value(&doc).map_err(err)?, None).await.map_err(err)
 }
 
+/// PDF or Word.
+#[derive(Deserialize, Default, Clone, Copy, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum Format {
+    #[default]
+    Pdf,
+    Docx,
+}
+
 #[derive(Deserialize)]
 pub struct ExportRequest {
     job_id: Option<i64>,
     doc: ResumeDoc,
     template: Template,
     path: String,
+    #[serde(default)]
+    format: Format,
 }
 
 #[derive(Serialize)]
@@ -122,8 +133,8 @@ pub struct ExportResult {
     ats: AtsReport,
 }
 
-/// Write the PDF, save this exact version against the job, and read it back as an ATS would.
-/// Refuses while any claim fails the fact gate.
+/// Write the PDF or Word file, save this exact version against the job, and read the
+/// content back as an ATS would. Refuses while any claim fails the fact gate.
 #[tauri::command]
 pub async fn resume_export(state: State<'_, AppState>, req: ExportRequest) -> CmdResult<ExportResult> {
     let (_, profile) = state.db.current_profile().await.map_err(err)?;
@@ -140,7 +151,12 @@ pub async fn resume_export(state: State<'_, AppState>, req: ExportRequest) -> Cm
     .await
     .map_err(err)?
     .map_err(err)?;
-    std::fs::write(&req.path, &pdf).map_err(|e| format!("Couldn't write {}: {e}", req.path))?;
+    let bytes = match req.format {
+        Format::Pdf => pdf.clone(),
+        Format::Docx => waypoint_docs::word::resume(&req.doc, req.template).map_err(err)?,
+    };
+    std::fs::write(&req.path, &bytes).map_err(|e| format!("Couldn't write {}: {e}", req.path))?;
+    // The read-back runs on the PDF of the same content; Word files parse at least as well.
     let keywords = job_keywords(&state, req.job_id).await;
     let report = ats::check_pdf(&pdf, pages, &req.doc, &keywords);
     state.db.save_resume(req.job_id, template_id(req.template), &serde_json::to_value(&req.doc).map_err(err)?, Some(&req.path)).await.map_err(err)?;

@@ -18,3 +18,4 @@ typst-svg = "0.15"
 typst-layout = "0.15"
 typst-assets = { version = "0.15", features = ["fonts"] }
 pdf-extract = "0.9"
+docx-rs = "=0.4.22"

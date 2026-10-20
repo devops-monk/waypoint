@@ -7,6 +7,7 @@ pub mod letter;
 pub mod render;
 pub mod resume;
 pub mod tailor;
+pub mod word;
 
 pub use letter::LetterDoc;
 pub use resume::{ResumeDoc, ResumeEducation, ResumeRole, Template};
@@ -70,6 +71,31 @@ mod tests {
             let text = pdf_extract::extract_text_from_mem(&render::pdf(&compiled).unwrap()).unwrap();
             for needle in ["Ada Lovelace", "Dear Globex hiring team", "Cut p99 latency", "Kind regards"] {
                 assert!(text.contains(needle), "{t:?} missing {needle}");
+            }
+        }
+    }
+
+    #[test]
+    fn word_exports_read_back_with_every_section() {
+        let doc = sample();
+        for t in [Template::Clean, Template::Modern] {
+            let bytes = word::resume(&doc, t).unwrap();
+            assert!(bytes.starts_with(b"PK"), "a .docx is a zip");
+            let text = word::plain_text(&bytes).unwrap();
+            for needle in ["Ada Lovelace", "Summary", "Experience", "Senior Engineer, Acme", "Cut p99 latency by 40%", "2021 – Present", "Skills", "Rust, PostgreSQL, Kubernetes", "Education", "BSc Mathematics"] {
+                assert!(text.contains(needle), "{t:?} resume missing {needle:?}:\n{text}");
+            }
+            let mut l = LetterDoc::with_header(&doc, "en");
+            l.recipient = vec!["Hiring team".into(), "Globex".into()];
+            l.subject = "Backend engineer for Globex".into();
+            l.salutation = "Dear Globex hiring team,".into();
+            l.opening = "I build fast Rust services.".into();
+            l.highlights = vec!["Cut p99 latency by 40%".into()];
+            l.body = vec!["I would welcome a conversation.".into()];
+            l.closing = "Kind regards,".into();
+            let text = word::plain_text(&word::letter(&l, t).unwrap()).unwrap();
+            for needle in ["Hiring team", "Globex", "Dear Globex hiring team,", "Cut p99 latency by 40%", "Kind regards,", "Ada Lovelace"] {
+                assert!(text.contains(needle), "{t:?} letter missing {needle:?}:\n{text}");
             }
         }
     }
