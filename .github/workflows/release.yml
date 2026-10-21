@@ -25,8 +25,40 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # Make the draft release once, before the long builds. If this fails with "Resource not
+  # accessible by integration", create it by hand and re-run the workflow:
+  #   gh release create vX.Y.Z --draft --verify-tag --title "Waypoint vX.Y.Z"
+  draft:
+    name: Prepare draft release
+    runs-on: ubuntu-24.04
+    if: github.ref_type == 'tag'
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - name: Create the draft if it doesn't exist
+        run: |
+          if gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists"
+            exit 0
+          fi
+          cat > notes.md <<'NOTES'
+          Download the installer for your computer from https://waypoint.devops-monk.com/#download, or below.
+
+          - **macOS (Apple silicon and Intel):** the `universal.dmg` file
+          - **Windows:** the `.msi` or `-setup.exe` file
+          - **Linux:** `.AppImage` (any distro), `.deb` (Ubuntu, Debian) or `.rpm` (Fedora)
+
+          These builds aren't signed yet. On macOS, right-click the app and choose Open the first time. On Windows, choose More info, then Run anyway.
+          NOTES
+          sed -i 's/^          //' notes.md
+          gh release create "$TAG" -R "$GITHUB_REPOSITORY" --draft --verify-tag --title "Waypoint $TAG" --notes-file notes.md
+
   build:
     name: Build ${{ matrix.name }}
+    needs: draft
+    # Still build when started by hand (no tag, so the draft job is skipped).
+    if: ${{ !failure() && !cancelled() }}
     strategy:
       fail-fast: false
       matrix:
@@ -88,13 +120,5 @@ jobs:
           args: --target ${{ matrix.target }}
           tagName: ${{ github.ref_type == 'tag' && github.ref_name || 'v__VERSION__' }}
           releaseName: Waypoint ${{ github.ref_type == 'tag' && github.ref_name || 'v__VERSION__' }}
-          releaseBody: |
-            Download the installer for your computer:
-
-            - **macOS (Apple silicon and Intel):** the `universal.dmg` file
-            - **Windows:** the `.msi` or `-setup.exe` file
-            - **Linux:** `.AppImage` (any distro), `.deb` (Ubuntu, Debian) or `.rpm` (Fedora)
-
-            These builds aren't signed yet. On macOS, right-click the app and choose Open the first time. On Windows, choose More info, then Run anyway.
           releaseDraft: true
           prerelease: false
