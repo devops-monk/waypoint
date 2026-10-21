@@ -73,6 +73,15 @@ pub(crate) fn corpus(p: &Profile) -> String {
     parts.join("\n").to_lowercase()
 }
 
+/// Numbers in `text` that appear nowhere in the profile: "65%" when the profile says 40%.
+/// Used on anything AI-written that isn't a resume, such as interview stories.
+pub fn unsupported_numbers(text: &str, profile: &Profile) -> Vec<String> {
+    let known: HashSet<String> = numbers(&corpus(profile)).into_iter().collect();
+    let mut out: Vec<String> = numbers(text).into_iter().filter(|n| !known.contains(n)).collect();
+    out.dedup();
+    out
+}
+
 pub fn check(doc: &ResumeDoc, profile: &Profile) -> Vec<Issue> {
     let mut issues = Vec::new();
     let text = corpus(profile);
@@ -167,6 +176,11 @@ mod tests {
         assert!(blocks.contains(&"experience.0.title"));
         assert_eq!(blocks.iter().filter(|p| **p == "experience.0.bullets.0").count(), 2, "65% and $1.2M");
         assert!(blocks.contains(&"skills.2"));
+    }
+
+    #[test]
+    fn unsupported_numbers_are_found_in_free_text() {
+        assert_eq!(unsupported_numbers("Cut latency by 40% for 2M requests, then by 65%", &profile()), vec!["65%".to_string()]);
     }
 
     #[test]

@@ -27,6 +27,9 @@ import type {
   FollowUpBoard,
   FollowUpSettings,
   Touch,
+  Story,
+  PrepState,
+  Practice,
 } from "./types";
 
 // One typed wrapper per Rust command. Argument names follow Tauri's camelCase convention.
@@ -80,6 +83,15 @@ export const api = {
   followupSetOff: (jobId: number, off: boolean) => invoke<void>("followup_set_off", { jobId, off }),
   saveFollowupSettings: (settings: FollowUpSettings) => invoke<void>("save_followup_settings", { settings }),
   followupDraft: (jobId: number, action: FollowUpAction, notes: string) => invoke<{ subject: string; body: string }>("followup_draft", { jobId, action, notes }),
+
+  storiesList: () => invoke<Story[]>("stories_list"),
+  storySave: (story: Story) => invoke<number>("story_save", { story }),
+  storyDelete: (id: number) => invoke<void>("story_delete", { id }),
+  storiesSuggest: () => invoke<{ added: number; flagged: string[] }>("stories_suggest"),
+  prepGet: (jobId: number) => invoke<PrepState>("prep_get", { jobId }),
+  prepBuild: (jobId: number) => invoke<PrepState>("prep_build", { jobId }),
+  prepNotes: (jobId: number, done: string[], debrief: string) => invoke<void>("prep_notes", { jobId, done, debrief }),
+  practiceAnswer: (jobId: number, question: string, answer: string) => invoke<Practice>("practice_answer", { jobId, question, answer }),
 
   letterLoad: (jobId: number) => invoke<LetterState>("letter_load", { jobId }),
   letterWrite: (jobId: number) => invoke<LetterState>("letter_write", { jobId }),

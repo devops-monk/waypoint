@@ -7802,7 +7802,7 @@ dependencies = [
 
 [[package]]
 name = "waypoint-ai"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "reqwest 0.12.28",
@@ -7816,7 +7816,7 @@ dependencies = [
 
 [[package]]
 name = "waypoint-core"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "chrono",
@@ -7833,7 +7833,7 @@ dependencies = [
 
 [[package]]
 name = "waypoint-desktop"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "chrono",
@@ -7861,7 +7861,7 @@ dependencies = [
 
 [[package]]
 name = "waypoint-docs"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "chrono",
@@ -7880,7 +7880,7 @@ dependencies = [
 
 [[package]]
 name = "waypoint-sources"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "async-trait",

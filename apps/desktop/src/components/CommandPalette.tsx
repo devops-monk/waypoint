@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Command } from "cmdk";
 import { AnimatePresence, motion } from "motion/react";
-import { Building2, FileText, Inbox, Plus, RefreshCw, Settings2, SquareKanban, UserRound } from "lucide-react";
+import { Building2, FileText, Inbox, Plus, RefreshCw, Settings2, SquareKanban, UserRound, MessagesSquare } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { api, errorMessage } from "../lib/api";
@@ -65,6 +65,7 @@ export function CommandPalette({ open, onClose, onNavigate, onOpenJob, onAdd }: 
                   <Command.Item onSelect={() => run(() => onNavigate("discover"))} className={item}><Inbox className="size-4" />Discover</Command.Item>
                   <Command.Item onSelect={() => run(() => onNavigate("pipeline"))} className={item}><SquareKanban className="size-4" />Pipeline</Command.Item>
                   <Command.Item onSelect={() => run(() => onNavigate("resume"))} className={item}><FileText className="size-4" />Resume and cover letters</Command.Item>
+                  <Command.Item onSelect={() => run(() => onNavigate("interviews"))} className={item}><MessagesSquare className="size-4" />Interview prep and stories</Command.Item>
                   <Command.Item onSelect={() => run(() => onNavigate("sources"))} className={item}><Building2 className="size-4" />Companies</Command.Item>
                   <Command.Item onSelect={() => run(() => onNavigate("profile"))} className={item}><UserRound className="size-4" />Profile</Command.Item>
                   <Command.Item onSelect={() => run(() => onNavigate("settings"))} className={item}><Settings2 className="size-4" />Settings</Command.Item>

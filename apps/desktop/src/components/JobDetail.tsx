@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import clsx from "clsx";
-import { AlertTriangle, Bookmark, Check, ExternalLink, FileText, Mail, Sparkles, Star, X } from "lucide-react";
+import { AlertTriangle, Bookmark, Check, ExternalLink, FileText, Mail, MessagesSquare, Sparkles, Star, X } from "lucide-react";
 import type { DocKind } from "../views/Documents";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
@@ -114,7 +114,7 @@ function EvaluationPanel({ evaluation, score, band, model }: { evaluation: Evalu
   );
 }
 
-export function JobDetail({ jobId, onTriage, onOpenDocs }: { jobId: number; onTriage?: (s: Status) => void; onOpenDocs?: (kind: DocKind) => void }) {
+export function JobDetail({ jobId, onTriage, onOpenDocs, onPrepare }: { jobId: number; onTriage?: (s: Status) => void; onOpenDocs?: (kind: DocKind) => void; onPrepare?: () => void }) {
   const qc = useQueryClient();
   const { data: job } = useQuery({ queryKey: ["job", jobId], queryFn: () => api.getJob(jobId) });
   const { data: ev } = useQuery({ queryKey: ["evaluation", jobId], queryFn: () => api.latestEvaluation(jobId) });
@@ -196,6 +196,9 @@ export function JobDetail({ jobId, onTriage, onOpenDocs }: { jobId: number; onTr
                 <Button size="sm" variant="plain" busy={evaluate.isPending} icon={<Sparkles className="size-3.5" />} onClick={() => evaluate.mutate()}>
                   Score again
                 </Button>
+                {onPrepare && ["responded", "assessment", "interview"].includes(job.status) && (
+                  <Button size="sm" icon={<MessagesSquare className="size-3.5" />} onClick={onPrepare}>Prepare for interview</Button>
+                )}
                 {onOpenDocs && (
                   <>
                     <Button size="sm" icon={<Mail className="size-3.5" />} onClick={async () => {

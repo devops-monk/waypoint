@@ -10,6 +10,7 @@ import { ProfileView } from "./views/Profile";
 import { Settings } from "./views/Settings";
 import { Documents, type DocKind } from "./views/Documents";
 import { checkOnLaunch } from "./lib/updates";
+import { Interviews } from "./views/Interviews";
 
 export default function App() {
   const [view, setView] = useState<View>("discover");
@@ -34,9 +35,9 @@ export default function App() {
       } else if (mod && e.key === ",") {
         e.preventDefault();
         setView("settings");
-      } else if (mod && /^[1-6]$/.test(e.key)) {
+      } else if (mod && /^[1-7]$/.test(e.key)) {
         e.preventDefault();
-        setView((["discover", "pipeline", "resume", "sources", "profile", "settings"] as View[])[Number(e.key) - 1]);
+        setView((["discover", "pipeline", "resume", "interviews", "sources", "profile", "settings"] as View[])[Number(e.key) - 1]);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -46,6 +47,12 @@ export default function App() {
   const openJob = (id: number) => {
     setFocusJob(id);
     setView("discover");
+  };
+
+  const [prepJob, setPrepJob] = useState<number | null>(null);
+  const prepFor = (id: number) => {
+    setPrepJob(id);
+    setView("interviews");
   };
 
   const openDocs = (id: number, kind: DocKind) => {
@@ -66,9 +73,10 @@ export default function App() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.12 }}
           >
-            {view === "discover" && <Discover focusJob={focusJob} onFocusHandled={() => setFocusJob(null)} onGoTo={setView} onOpenDocs={openDocs} />}
+            {view === "discover" && <Discover focusJob={focusJob} onFocusHandled={() => setFocusJob(null)} onGoTo={setView} onOpenDocs={openDocs} onPrepare={prepFor} />}
             {view === "pipeline" && <Pipeline onOpenJob={openJob} />}
             {view === "resume" && <Documents target={docTarget} />}
+            {view === "interviews" && <Interviews initialJob={prepJob} />}
             {view === "sources" && <Sources />}
             {view === "profile" && <ProfileView />}
             {view === "settings" && <Settings />}

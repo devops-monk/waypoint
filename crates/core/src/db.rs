@@ -37,6 +37,22 @@ fn salary_from(row: &SqliteRow) -> Option<Salary> {
     Some(Salary { min, max, currency: row.get("salary_currency"), period: row.get("salary_period") })
 }
 
+fn story_from(r: &SqliteRow) -> Story {
+    Story {
+        id: r.get("id"),
+        title: r.get("title"),
+        source: r.get("source"),
+        situation: r.get("situation"),
+        task: r.get("task"),
+        action: r.get("action"),
+        result: r.get("result"),
+        reflection: r.get("reflection"),
+        tags: serde_json::from_str(r.get::<String, _>("tags").as_str()).unwrap_or_default(),
+        draft: r.get::<i64, _>("draft") != 0,
+        updated_at: ts(r.get("updated_at")),
+    }
+}
+
 fn status_from(row: &SqliteRow) -> Status {
     Status::parse(row.get::<String, _>("status").as_str()).unwrap_or(Status::New)
 }
@@ -520,6 +536,95 @@ impl Db {
         Ok(())
     }
 
+    // ── Interview prep ──────────────────────────────────────────────────
+
+    pub async fn list_stories(&self) -> Result<Vec<Story>> {
+        let rows = sqlx::query("SELECT * FROM story ORDER BY draft, updated_at DESC, id DESC").fetch_all(&self.pool).await?;
+        Ok(rows.iter().map(story_from).collect())
+    }
+
+    /// Insert when `id` is 0, otherwise update. Saving a story marks it reviewed.
+    pub async fn save_story(&self, s: &Story) -> Result<i64> {
+        let now = Utc::now().to_rfc3339();
+        let tags = serde_json::to_string(&s.tags)?;
+        if s.id == 0 {
+            Ok(sqlx::query_scalar(
+                "INSERT INTO story (title, source, situation, task, action, result, reflection, tags, draft, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
+            )
+            .bind(&s.title).bind(&s.source).bind(&s.situation).bind(&s.task).bind(&s.action).bind(&s.result).bind(&s.reflection).bind(&tags).bind(s.draft as i64).bind(&now).bind(&now)
+            .fetch_one(&self.pool)
+            .await?)
+        } else {
+            sqlx::query("UPDATE story SET title = ?, source = ?, situation = ?, task = ?, action = ?, result = ?, reflection = ?, tags = ?, draft = ?, updated_at = ? WHERE id = ?")
+                .bind(&s.title).bind(&s.source).bind(&s.situation).bind(&s.task).bind(&s.action).bind(&s.result).bind(&s.reflection).bind(&tags).bind(s.draft as i64).bind(&now).bind(s.id)
+                .execute(&self.pool)
+                .await?;
+            Ok(s.id)
+        }
+    }
+
+    pub async fn delete_story(&self, id: i64) -> Result<()> {
+        sqlx::query("DELETE FROM story WHERE id = ?").bind(id).execute(&self.pool).await?;
+        Ok(())
+    }
+
+    pub async fn get_prep(&self, job_id: i64) -> Result<Option<StoredPrep>> {
+        let row = sqlx::query("SELECT * FROM interview_prep WHERE job_id = ?").bind(job_id).fetch_optional(&self.pool).await?;
+        Ok(row.map(|r| StoredPrep {
+            job_id: r.get("job_id"),
+            pack: serde_json::from_str(r.get::<String, _>("pack").as_str()).unwrap_or_default(),
+            done: serde_json::from_str(r.get::<String, _>("done").as_str()).unwrap_or_default(),
+            debrief: r.get("debrief"),
+            model: r.get("model"),
+            created_at: ts_req(r.get("created_at")),
+            updated_at: ts_req(r.get("updated_at")),
+        }))
+    }
+
+    /// Store a freshly built pack. The debrief survives a rebuild; ticked items don't.
+    pub async fn save_prep_pack(&self, job_id: i64, pack: &serde_json::Value, model: &str) -> Result<()> {
+        let now = Utc::now().to_rfc3339();
+        sqlx::query(
+            "INSERT INTO interview_prep (job_id, pack, done, debrief, model, created_at, updated_at) VALUES (?, ?, '[]', '', ?, ?, ?)
+             ON CONFLICT(job_id) DO UPDATE SET pack = excluded.pack, done = '[]', model = excluded.model, updated_at = excluded.updated_at",
+        )
+        .bind(job_id).bind(pack.to_string()).bind(model).bind(&now).bind(&now)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn set_prep_notes(&self, job_id: i64, done: &[String], debrief: &str) -> Result<()> {
+        sqlx::query("UPDATE interview_prep SET done = ?, debrief = ?, updated_at = ? WHERE job_id = ?")
+            .bind(serde_json::to_string(done)?).bind(debrief).bind(Utc::now().to_rfc3339()).bind(job_id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn save_practice(&self, job_id: i64, question: &str, answer: &str, feedback: &serde_json::Value) -> Result<i64> {
+        Ok(sqlx::query_scalar("INSERT INTO practice (job_id, question, answer, feedback, created_at) VALUES (?, ?, ?, ?, ?) RETURNING id")
+            .bind(job_id).bind(question).bind(answer).bind(feedback.to_string()).bind(Utc::now().to_rfc3339())
+            .fetch_one(&self.pool)
+            .await?)
+    }
+
+    pub async fn list_practice(&self, job_id: i64) -> Result<Vec<Practice>> {
+        let rows = sqlx::query("SELECT * FROM practice WHERE job_id = ? ORDER BY created_at DESC, id DESC").bind(job_id).fetch_all(&self.pool).await?;
+        Ok(rows
+            .iter()
+            .map(|r| Practice {
+                id: r.get("id"),
+                job_id: r.get("job_id"),
+                question: r.get("question"),
+                answer: r.get("answer"),
+                feedback: serde_json::from_str(r.get::<String, _>("feedback").as_str()).unwrap_or_default(),
+                created_at: ts_req(r.get("created_at")),
+            })
+            .collect())
+    }
+
     // ── Cover letters ───────────────────────────────────────────────────
 
     pub async fn save_cover_letter(&self, job_id: Option<i64>, template: &str, data: &serde_json::Value, notes: Option<&serde_json::Value>, file_path: Option<&str>) -> Result<i64> {
@@ -690,6 +795,29 @@ mod tests {
         let j = &db.follow_up_jobs().await.unwrap()[0];
         assert!(j.off);
         assert_eq!(j.notified_on, Some(soon));
+    }
+
+    #[tokio::test]
+    async fn stories_prep_packs_and_practice_round_trip() {
+        let db = Db::in_memory().await.unwrap();
+        let id = db.save_story(&Story { title: "Realtime fan-out".into(), action: "Built it".into(), tags: vec!["ownership".into()], draft: true, ..Default::default() }).await.unwrap();
+        db.save_story(&Story { id, title: "Realtime fan-out at scale".into(), tags: vec!["ownership".into(), "scale".into()], ..Default::default() }).await.unwrap();
+        let stories = db.list_stories().await.unwrap();
+        assert_eq!((stories.len(), stories[0].title.as_str(), stories[0].draft, stories[0].tags.len()), (1, "Realtime fan-out at scale", false, 2));
+
+        db.upsert_jobs(&[draft("A", "https://x.test/1")]).await.unwrap();
+        let job = db.list_jobs(&JobFilter::default()).await.unwrap()[0].id;
+        assert!(db.get_prep(job).await.unwrap().is_none());
+        db.save_prep_pack(job, &serde_json::json!({"v": 1}), "m").await.unwrap();
+        db.set_prep_notes(job, &["Test the camera".into()], "They asked about backpressure").await.unwrap();
+        db.save_prep_pack(job, &serde_json::json!({"v": 2}), "m").await.unwrap();
+        let p = db.get_prep(job).await.unwrap().unwrap();
+        assert_eq!((p.pack["v"].as_i64(), p.done.len(), p.debrief.as_str()), (Some(2), 0, "They asked about backpressure"), "a rebuild keeps the debrief");
+
+        db.save_practice(job, "Tell me about yourself", "I build realtime systems", &serde_json::json!({"score": 3})).await.unwrap();
+        assert_eq!(db.list_practice(job).await.unwrap()[0].feedback["score"], 3);
+        db.delete_story(id).await.unwrap();
+        assert!(db.list_stories().await.unwrap().is_empty());
     }
 
     #[tokio::test]

@@ -149,6 +149,12 @@ pub async fn followup_draft(state: State<'_, AppState>, job_id: i64, action: Act
         Action::Reply => "reply",
         Action::ThankYou => "thank_you",
     };
+    // A thank-you note is better for knowing what was discussed: fall back to the debrief.
+    let notes = if notes.trim().is_empty() && action == "thank_you" {
+        state.db.get_prep(job_id).await.ok().flatten().map(|p| p.debrief).unwrap_or_default()
+    } else {
+        notes
+    };
     let days = (Utc::now() - job.status_at).num_days().max(0);
     let (system, user) = followup::prompt(&followup::Context { profile: &profile, job: &job, action, days_in_status: days, history: &history, notes: &notes });
     let (cfg, key) = ai_config_and_key(&state).await?;

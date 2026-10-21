@@ -174,3 +174,41 @@ pub struct Touch {
     pub note: String,
     pub at: DateTime<Utc>,
 }
+
+/// A STAR story from the user's experience, reused across interviews.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Story {
+    pub id: i64,
+    pub title: String,
+    pub source: String,
+    pub situation: String,
+    pub task: String,
+    pub action: String,
+    pub result: String,
+    pub reflection: String,
+    pub tags: Vec<String>,
+    pub draft: bool,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StoredPrep {
+    pub job_id: i64,
+    pub pack: serde_json::Value,
+    pub done: Vec<String>,
+    pub debrief: String,
+    pub model: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Practice {
+    pub id: i64,
+    pub job_id: i64,
+    pub question: String,
+    pub answer: String,
+    pub feedback: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+}

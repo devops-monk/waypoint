@@ -1,5 +1,6 @@
 mod commands;
 mod followup_cmds;
+mod interview_cmds;
 mod letter_cmds;
 mod resume_cmds;
 mod secrets;
@@ -94,6 +95,14 @@ pub fn run() {
             followup_cmds::followup_set_off,
             followup_cmds::save_followup_settings,
             followup_cmds::followup_draft,
+            interview_cmds::stories_list,
+            interview_cmds::story_save,
+            interview_cmds::story_delete,
+            interview_cmds::stories_suggest,
+            interview_cmds::prep_get,
+            interview_cmds::prep_build,
+            interview_cmds::prep_notes,
+            interview_cmds::practice_answer,
             letter_cmds::letter_load,
             letter_cmds::letter_write,
             letter_cmds::letter_render,

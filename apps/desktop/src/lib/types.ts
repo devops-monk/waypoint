@@ -361,3 +361,55 @@ export interface Touch {
   note: string;
   at: string;
 }
+
+export interface Story {
+  id: number;
+  title: string;
+  source: string;
+  situation: string;
+  task: string;
+  action: string;
+  result: string;
+  reflection: string;
+  tags: string[];
+  draft: boolean;
+  updated_at: string | null;
+}
+
+export type QuestionCategory = "opener" | "motivation" | "behavioral" | "technical" | "curveball";
+
+export interface PrepPack {
+  role_focus: string[];
+  company_brief: string;
+  questions: { category: QuestionCategory; question: string; why: string; story_id: number; talking_points: string[] }[];
+  gaps: { gap: string; answer: string }[];
+  questions_to_ask: string[];
+  checklist: string[];
+}
+
+export interface Feedback {
+  score: number;
+  summary: string;
+  worked: string[];
+  improve: string[];
+  star: { situation: boolean; task: boolean; action: boolean; result: boolean };
+  stronger_answer: string;
+}
+
+export interface Practice {
+  id: number;
+  job_id: number;
+  question: string;
+  answer: string;
+  feedback: Feedback;
+  created_at: string;
+}
+
+export interface PrepState {
+  pack: PrepPack | null;
+  done: string[];
+  debrief: string;
+  model: string;
+  updated_at: string | null;
+  practice: Practice[];
+}
