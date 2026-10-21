@@ -338,8 +338,9 @@
           <h3>macOS</h3>
           <p class="req">Apple silicon or Intel</p>
           <ul>
-            <li><a href="downloads/Waypoint_0.1.0_aarch64.dmg" data-file="mac_arm" download><span>Apple silicon <small>(M1 and later)</small></span><span>29 MB</span></a></li>
-            <li><a href="downloads/Waypoint_0.1.0_x64.dmg" data-file="mac_intel" download><span>Intel</span><span>30 MB</span></a></li>
+            <li data-universal hidden><a href="#download" data-file="mac" download><span>Apple silicon and Intel</span><span></span></a></li>
+            <li data-arch><a href="downloads/Waypoint_0.1.0_aarch64.dmg" data-file="mac_arm" download><span>Apple silicon <small>(M1 and later)</small></span><span>29 MB</span></a></li>
+            <li data-arch><a href="downloads/Waypoint_0.1.0_x64.dmg" data-file="mac_intel" download><span>Intel</span><span>30 MB</span></a></li>
           </ul>
           <p class="note">This early build isn't signed yet. The first time, right-click Waypoint in Applications and choose Open.</p>
         </div>
@@ -412,8 +413,15 @@
           var size = a.querySelector("span:last-child");
           if (size) size.textContent = Math.round(f.size / 1048576) + " MB";
         });
+        // One universal Mac app replaces the two per-architecture downloads.
+        if (m.files.mac) {
+          var uni = document.querySelector("[data-universal]");
+          if (uni) uni.hidden = false;
+          document.querySelectorAll("[data-arch]").forEach(function (li) { li.hidden = true; });
+        }
         var btn = document.getElementById("primary-download");
-        var here = document.querySelector(".platform.here a[data-file]");
+        if (m.files.mac && document.querySelector('.platform.here[data-os="mac"]')) btn.href = m.files.mac.url;
+        var here = document.querySelector(".platform.here li:not([hidden]) a[data-file]");
         if (here && !document.querySelector('.platform.here[data-os="mac"]')) btn.href = here.href;
       })
       .catch(function () { /* keep the built-in links */ });

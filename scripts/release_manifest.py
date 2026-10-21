@@ -21,6 +21,7 @@ from pathlib import Path
 
 # Website download slots: (key, label, filename suffix).
 DOWNLOADS = [
+    ("mac", "macOS, Apple silicon and Intel", "_universal.dmg"),
     ("mac_arm", "macOS, Apple silicon", "_aarch64.dmg"),
     ("mac_intel", "macOS, Intel", "_x64.dmg"),
     ("win_exe", "Windows installer", "-setup.exe"),
@@ -33,7 +34,9 @@ DOWNLOADS = [
 # Updater platforms: (Tauri platform key, filename suffix of the signed update bundle).
 # .deb and .rpm installs can't self-update; their users download the new package.
 UPDATER = [
+    ("darwin-aarch64", "_universal.app.tar.gz"),
     ("darwin-aarch64", "_aarch64.app.tar.gz"),
+    ("darwin-x86_64", "_universal.app.tar.gz"),
     ("darwin-x86_64", "_x64.app.tar.gz"),
     ("windows-x86_64", "-setup.exe"),
     ("linux-x86_64", ".AppImage"),
@@ -64,7 +67,8 @@ def main():
         f = find(installers, suffix)
         if f:
             downloads[key] = {"label": label, "name": f.name, "url": f"{base}/{f.name}", "size": f.stat().st_size}
-    missing = [k for k, _, _ in DOWNLOADS if k not in downloads]
+    # A universal Mac build replaces the two per-architecture ones.
+    missing = [k for k, _, _ in DOWNLOADS if k not in downloads and not (k.startswith("mac") and any(m.startswith("mac") for m in downloads))]
     if missing:
         print(f"warning: no file for {', '.join(missing)}", file=sys.stderr)
     manifest = {"version": version, "pub_date": now, "checksums": f"{base}/SHA256SUMS.txt", "files": downloads}
@@ -72,11 +76,14 @@ def main():
 
     platforms = {}
     for key, suffix in UPDATER:
+        if key in platforms:
+            continue
         bundle = find(installers, suffix)
         sig = bundle and assets / f"{bundle.name}.sig"
         if bundle and sig.exists():
             platforms[key] = {"signature": sig.read_text().strip(), "url": f"{base}/{bundle.name}"}
-        else:
+    for key in dict.fromkeys(k for k, _ in UPDATER):
+        if key not in platforms:
             print(f"warning: no signed update bundle for {key}", file=sys.stderr)
     if not platforms:
         sys.exit("error: no signed update bundles found; was TAURI_SIGNING_PRIVATE_KEY set for the build?")

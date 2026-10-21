@@ -31,12 +31,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: macOS (Apple silicon)
+          # One universal app (Apple silicon + Intel): one Mac runner instead of two, since
+          # GitHub's Mac runners are the scarce ones.
+          - name: macOS (universal)
             os: macos-latest
-            target: aarch64-apple-darwin
-          - name: macOS (Intel)
-            os: macos-latest
-            target: x86_64-apple-darwin
+            target: universal-apple-darwin
+            rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
           - name: Windows
             os: windows-latest
             target: x86_64-pc-windows-msvc
@@ -55,7 +55,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: ${{ matrix.rust_targets || matrix.target }}
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -91,8 +91,7 @@ jobs:
           releaseBody: |
             Download the installer for your computer:
 
-            - **macOS, Apple silicon (M1 and later):** the `aarch64.dmg` file
-            - **macOS, Intel:** the `x64.dmg` file
+            - **macOS (Apple silicon and Intel):** the `universal.dmg` file
             - **Windows:** the `.msi` or `-setup.exe` file
             - **Linux:** `.AppImage` (any distro), `.deb` (Ubuntu, Debian) or `.rpm` (Fedora)
 
