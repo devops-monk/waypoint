@@ -22,6 +22,7 @@ An honest, private job search copilot for macOS, Windows and Linux. It finds rea
 - **People you know:** import LinkedIn's own Connections.csv export (Waypoint never logs in to LinkedIn) and every job shows who you know at that company, matched so "PayPal" finds "Pay Pal" but "Epic" doesn't find "Epic Games". Draft a short, honest referral or advice request; you send it. Connections stay on your computer and can be removed in one click.
 - **Profile:** import a PDF, .txt or .md resume, or paste the text. The AI drafts your profile, and you review it before saving.
 - **Settings:** bring your own key for Claude, OpenAI or OpenRouter, or run free and fully local with Ollama. Keys live in the OS keychain. A usage panel shows token spend across every AI call.
+- **Backup and restore:** in Settings, save everything to one `.waypoint` file and restore it on any computer. Restoring checks the file first and keeps your current data as a dated copy.
 - **Everywhere:** ⌘K command palette, ⌘N to add any job by hand (for example from LinkedIn), ⌘1–7 to switch views, light and dark mode, and native window translucency on macOS and Windows.
 
 ## Layout

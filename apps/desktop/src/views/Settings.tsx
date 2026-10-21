@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { open as openFile, save } from "@tauri-apps/plugin-dialog";
+import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
 import clsx from "clsx";
 import { Check, KeyRound, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -53,6 +54,76 @@ const CADENCE_FIELDS: { key: keyof Cadence; label: string; unit: string }[] = [
   { key: "responded_subsequent", label: "Then keep in touch every", unit: "days" },
   { key: "interview_thankyou", label: "Thank-you note after an interview", unit: "days" },
 ];
+
+function BackupPanel() {
+  const [busy, setBusy] = useState<"export" | "restore" | null>(null);
+  const [pending, setPending] = useState<{ path: string; jobs: number; applied: number; name: string } | null>(null);
+
+  const exportBackup = async () => {
+    const day = new Date().toISOString().slice(0, 10);
+    const path = await save({ defaultPath: `Waypoint backup ${day}.waypoint`, filters: [{ name: "Waypoint backup", extensions: ["waypoint"] }] });
+    if (!path) return;
+    setBusy("export");
+    try {
+      await api.backupExport(path);
+      toast.success("Backup saved", { action: { label: "Show file", onClick: () => revealItemInDir(path) } });
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const chooseRestore = async () => {
+    const path = await openFile({ multiple: false, filters: [{ name: "Waypoint backup", extensions: ["waypoint", "db"] }] });
+    if (!path || Array.isArray(path)) return;
+    try {
+      setPending({ path, ...(await api.backupInspect(path)) });
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
+  };
+
+  return (
+    <Panel className="p-4">
+      <div className="flex items-center gap-3">
+        <div className="flex-1">
+          <p className="text-body font-medium">Back up everything</p>
+          <p className="text-callout text-ink-3">Jobs, your profile, every document and note, stories and follow-ups, in one file. API keys stay in your keychain and aren't included.</p>
+        </div>
+        <Button busy={busy === "export"} onClick={exportBackup}>Back up…</Button>
+        <Button variant="plain" onClick={chooseRestore}>Restore…</Button>
+      </div>
+      {pending && (
+        <div className="mt-3 rounded-[10px] bg-amber/10 p-3">
+          <p className="text-callout font-medium">
+            Restore the backup{pending.name ? ` of ${pending.name}` : ""}: {pending.jobs} {pending.jobs === 1 ? "job" : "jobs"}, {pending.applied} applied or further?
+          </p>
+          <p className="mt-0.5 text-callout text-ink-2">This replaces what's in Waypoint now. Your current data is kept as a dated copy in the app's data folder, and Waypoint restarts.</p>
+          <div className="mt-2.5 flex justify-end gap-2">
+            <Button size="sm" variant="plain" onClick={() => setPending(null)}>Cancel</Button>
+            <Button
+              size="sm"
+              variant="primary"
+              busy={busy === "restore"}
+              onClick={async () => {
+                setBusy("restore");
+                try {
+                  await api.backupRestore(pending.path);
+                } catch (e) {
+                  toast.error(errorMessage(e));
+                  setBusy(null);
+                }
+              }}
+            >
+              Restore and restart
+            </Button>
+          </div>
+        </div>
+      )}
+    </Panel>
+  );
+}
 
 function UpdatesPanel() {
   const { data: version } = useQuery({ queryKey: ["app-version"], queryFn: getVersion });
@@ -294,7 +365,8 @@ export function Settings() {
 
           <section>
             <h2 className="text-headline font-semibold">Your data</h2>
-            <p className="mt-1 text-callout text-ink-2">Jobs, your profile and notes are stored in a local database on this computer. Waypoint has no account and no cloud. Job boards are contacted directly, and AI calls go straight to the provider you chose.</p>
+            <p className="mt-1 mb-3 text-callout text-ink-2">Jobs, your profile and notes are stored in a local database on this computer. Waypoint has no account and no cloud. Job boards are contacted directly, and AI calls go straight to the provider you chose.</p>
+            <BackupPanel />
           </section>
         </div>
       </div>

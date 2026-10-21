@@ -70,6 +70,9 @@ export const api = {
   evaluateJob: (jobId: number) => invoke<EvaluationView>("evaluate_job", { jobId }),
   tokenUsage: () => invoke<UsageRow[]>("token_usage"),
   insights: () => invoke<Insights>("insights"),
+  backupExport: (path: string) => invoke<void>("backup_export", { path }),
+  backupInspect: (path: string) => invoke<{ jobs: number; applied: number; name: string }>("backup_inspect", { path }),
+  backupRestore: (path: string) => invoke<void>("backup_restore", { path }),
 
   resumeLoad: (jobId: number | null) => invoke<ResumeState>("resume_load", { jobId }),
   resumeRender: (doc: ResumeDoc, template: Template) => invoke<{ pages: string[]; issues: FactIssue[] }>("resume_render", { doc, template }),

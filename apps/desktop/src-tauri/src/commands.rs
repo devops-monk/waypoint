@@ -414,3 +414,26 @@ pub async fn token_usage(state: State<'_, AppState>) -> CmdResult<Vec<UsageRow>>
 pub async fn insights(state: State<'_, AppState>) -> CmdResult<waypoint_core::insights::Insights> {
     state.db.insights(chrono::Local::now().date_naive(), 12).await.map_err(err)
 }
+
+// ── Backup and restore ──────────────────────────────────────────────────
+
+#[tauri::command]
+pub async fn backup_export(state: State<'_, AppState>, path: String) -> CmdResult<()> {
+    state.db.backup_to(std::path::Path::new(&path)).await.map_err(|e| format!("Couldn't write the backup: {e}"))
+}
+
+#[tauri::command]
+pub async fn backup_inspect(path: String) -> CmdResult<waypoint_core::db::BackupInfo> {
+    waypoint_core::Db::inspect_backup(std::path::Path::new(&path)).await.map_err(|e| e.to_string())
+}
+
+/// Stage the backup next to the live database and restart; startup swaps it in and keeps
+/// the current database as a dated copy.
+#[tauri::command]
+pub async fn backup_restore(app: AppHandle, path: String) -> CmdResult<()> {
+    use tauri::Manager;
+    waypoint_core::Db::inspect_backup(std::path::Path::new(&path)).await.map_err(|e| e.to_string())?;
+    let live = app.path().app_data_dir().map_err(err)?.join("waypoint.db");
+    std::fs::copy(&path, live.with_extension("db.restore")).map_err(|e| format!("Couldn't stage the backup: {e}"))?;
+    app.restart();
+}

@@ -46,7 +46,11 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
-            let db = tauri::async_runtime::block_on(Db::open(&data_dir.join("waypoint.db")))?;
+            let db_path = data_dir.join("waypoint.db");
+            if Db::apply_staged_restore(&db_path)? {
+                tracing::info!("restored a backup into {}", db_path.display());
+            }
+            let db = tauri::async_runtime::block_on(Db::open(&db_path))?;
             app.manage(AppState { db, http: Http::new(Duration::from_millis(1000)), llm: Llm::new() });
             if let Some(window) = app.get_webview_window("main") {
                 apply_window_material(&window);
@@ -83,6 +87,9 @@ pub fn run() {
             commands::evaluate_job,
             commands::token_usage,
             commands::insights,
+            commands::backup_export,
+            commands::backup_inspect,
+            commands::backup_restore,
             resume_cmds::resume_load,
             resume_cmds::resume_render,
             resume_cmds::resume_tailor,

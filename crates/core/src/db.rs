@@ -37,6 +37,14 @@ fn salary_from(row: &SqliteRow) -> Option<Salary> {
     Some(Salary { min, max, currency: row.get("salary_currency"), period: row.get("salary_period") })
 }
 
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct BackupInfo {
+    pub jobs: i64,
+    /// Jobs past the "considering" stages.
+    pub applied: i64,
+    pub name: String,
+}
+
 fn story_from(r: &SqliteRow) -> Story {
     Story {
         id: r.get("id"),
@@ -70,6 +78,54 @@ impl Db {
             .journal_mode(SqliteJournalMode::Wal)
             .foreign_keys(true);
         Self::connect(opts).await
+    }
+
+    /// If a restore was staged next to the database (`<db>.restore`), swap it in before
+    /// opening: the current database is kept as `<db>.before-restore-<time>`.
+    pub fn apply_staged_restore(path: &Path) -> Result<bool> {
+        let staged = path.with_extension("db.restore");
+        if !staged.exists() {
+            return Ok(false);
+        }
+        let stamp = Utc::now().format("%Y%m%d-%H%M%S");
+        if path.exists() {
+            std::fs::rename(path, path.with_extension(format!("db.before-restore-{stamp}")))?;
+        }
+        for side in ["db-wal", "db-shm"] {
+            let _ = std::fs::remove_file(path.with_extension(side));
+        }
+        std::fs::rename(&staged, path)?;
+        Ok(true)
+    }
+
+    /// A consistent copy of the whole database in one file, safe while the app is running.
+    pub async fn backup_to(&self, dest: &Path) -> Result<()> {
+        if dest.exists() {
+            std::fs::remove_file(dest).with_context(|| format!("replacing {}", dest.display()))?;
+        }
+        sqlx::query("VACUUM INTO ?").bind(dest.display().to_string()).execute(&self.pool).await?;
+        Ok(())
+    }
+
+    /// Check that a file is a Waypoint backup this version can open, without changing it.
+    pub async fn inspect_backup(path: &Path) -> Result<BackupInfo> {
+        let opts = SqliteConnectOptions::from_str(&format!("sqlite://{}", path.display()))?.read_only(true);
+        let pool = SqlitePoolOptions::new().max_connections(1).connect_with(opts).await.context("not a database file")?;
+        let tables: Vec<String> = sqlx::query_scalar("SELECT name FROM sqlite_master WHERE type = 'table'").fetch_all(&pool).await.context("not a database file")?;
+        if !["job", "profile", "_sqlx_migrations"].iter().all(|t| tables.iter().any(|n| n == t)) {
+            return Err(anyhow!("This isn't a Waypoint backup."));
+        }
+        let newest: i64 = sqlx::query_scalar("SELECT COALESCE(MAX(version), 0) FROM _sqlx_migrations").fetch_one(&pool).await?;
+        let ours = MIGRATOR.iter().map(|m| m.version).max().unwrap_or(0);
+        if newest > ours {
+            return Err(anyhow!("This backup is from a newer version of Waypoint. Update the app, then restore it."));
+        }
+        let jobs: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM job").fetch_one(&pool).await?;
+        let applied: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM job WHERE status NOT IN ('new', 'saved', 'evaluated', 'skip', 'discarded')").fetch_one(&pool).await?;
+        let profile: Option<String> = sqlx::query_scalar("SELECT data FROM profile ORDER BY version DESC LIMIT 1").fetch_optional(&pool).await?;
+        let name = profile.and_then(|p| serde_json::from_str::<serde_json::Value>(&p).ok()).and_then(|v| v["name"].as_str().map(str::to_string)).unwrap_or_default();
+        pool.close().await;
+        Ok(BackupInfo { jobs, applied, name })
     }
 
     pub async fn in_memory() -> Result<Self> {
@@ -902,6 +958,34 @@ mod tests {
         assert_eq!(all.len(), 2);
         assert!(all.iter().any(|c| c.first_name == "Ada" && c.company == "Lunar" && c.position == "Staff Engineer"));
         assert_eq!(db.clear_contacts().await.unwrap(), 2);
+    }
+
+    #[tokio::test]
+    async fn backup_inspect_and_staged_restore() {
+        let dir = std::env::temp_dir().join(format!("waypoint-backup-test-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let live = dir.join("waypoint.db");
+        let db = Db::open(&live).await.unwrap();
+        db.upsert_jobs(&[draft("A", "https://x.test/1"), draft("B", "https://x.test/2")]).await.unwrap();
+        let id = db.list_jobs(&JobFilter::default()).await.unwrap()[0].id;
+        db.set_status(id, Status::Applied, "").await.unwrap();
+        let backup = dir.join("backup.waypoint");
+        db.backup_to(&backup).await.unwrap();
+        let info = Db::inspect_backup(&backup).await.unwrap();
+        assert_eq!((info.jobs, info.applied), (2, 1));
+        std::fs::write(dir.join("not.db"), b"hello").unwrap();
+        assert!(Db::inspect_backup(&dir.join("not.db")).await.is_err());
+
+        drop(db);
+        std::fs::copy(&backup, live.with_extension("db.restore")).unwrap();
+        assert!(Db::apply_staged_restore(&live).unwrap());
+        assert!(!Db::apply_staged_restore(&live).unwrap(), "nothing staged the second time");
+        let kept = std::fs::read_dir(&dir).unwrap().filter_map(|e| e.ok()).any(|e| e.file_name().to_string_lossy().contains("before-restore"));
+        assert!(kept, "the previous database is kept");
+        let restored = Db::open(&live).await.unwrap();
+        assert_eq!(restored.list_jobs(&JobFilter::default()).await.unwrap().len(), 2);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[tokio::test]
