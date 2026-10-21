@@ -413,3 +413,14 @@ export interface PrepState {
   updated_at: string | null;
   practice: Practice[];
 }
+
+export interface Insights {
+  funnel: { key: "saved" | "applied" | "heard_back" | "interview" | "offer" | "hired"; count: number }[];
+  applied: number;
+  heard_back: number;
+  median_days_to_reply: number | null;
+  active: number;
+  by_source: { source: string; applied: number; heard_back: number }[];
+  weeks: { start: string; applied: number }[];
+  fit: { heard_back_avg: number; heard_back_n: number; silent_avg: number; silent_n: number } | null;
+}

@@ -3,6 +3,7 @@
 pub mod db;
 pub mod dedup;
 pub mod followup;
+pub mod insights;
 pub mod models;
 pub mod profile;
 pub mod scoring;

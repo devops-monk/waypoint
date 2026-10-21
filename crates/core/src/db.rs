@@ -536,6 +536,20 @@ impl Db {
         Ok(())
     }
 
+    // ── Insights ────────────────────────────────────────────────────────
+
+    pub async fn insights(&self, today: chrono::NaiveDate, weeks: usize) -> Result<crate::insights::Insights> {
+        use crate::insights::{EventRow, JobRow};
+        let jobs = sqlx::query(&format!("SELECT j.id, j.source, j.status, ev.score FROM job j {LATEST_EVAL}")).fetch_all(&self.pool).await?;
+        let jobs: Vec<JobRow> = jobs.iter().map(|r| JobRow { id: r.get("id"), source: r.get("source"), status: status_from(r), score: r.get("score") }).collect();
+        let events = sqlx::query("SELECT job_id, to_status, at FROM status_event").fetch_all(&self.pool).await?;
+        let events: Vec<EventRow> = events
+            .iter()
+            .filter_map(|r| Some(EventRow { job_id: r.get("job_id"), to: Status::parse(r.get::<String, _>("to_status").as_str())?, at: ts_req(r.get("at")) }))
+            .collect();
+        Ok(crate::insights::compute(&jobs, &events, today, weeks))
+    }
+
     // ── Interview prep ──────────────────────────────────────────────────
 
     pub async fn list_stories(&self) -> Result<Vec<Story>> {

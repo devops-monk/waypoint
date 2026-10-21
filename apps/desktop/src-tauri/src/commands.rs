@@ -406,3 +406,11 @@ pub struct UsageRow {
 pub async fn token_usage(state: State<'_, AppState>) -> CmdResult<Vec<UsageRow>> {
     Ok(state.db.token_usage().await.map_err(err)?.into_iter().map(|(model, calls, input_tokens, output_tokens)| UsageRow { model, calls, input_tokens, output_tokens }).collect())
 }
+
+// ── Insights ────────────────────────────────────────────────────────────
+
+/// Funnel, reply rates by source, time to first reply and the last 12 weeks of applying.
+#[tauri::command]
+pub async fn insights(state: State<'_, AppState>) -> CmdResult<waypoint_core::insights::Insights> {
+    state.db.insights(chrono::Local::now().date_naive(), 12).await.map_err(err)
+}

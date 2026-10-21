@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { FitBadge } from "../components/FitDial";
 import { Segmented } from "../components/ui";
 import { FollowUps } from "./FollowUps";
+import { Insights } from "./Insights";
 import { api, errorMessage } from "../lib/api";
 import { EXITS, ROUTE, STATUS_LABEL } from "../lib/format";
 import type { JobSummary, Status } from "../lib/types";
@@ -70,7 +71,7 @@ export function Pipeline({ onOpenJob }: { onOpenJob: (id: number) => void }) {
   const qc = useQueryClient();
   const { data: jobs = [] } = useQuery({ queryKey: ["jobs", "pipeline"], queryFn: () => api.listJobs({ statuses: [...COLUMNS, ...EXITS], limit: 2000 }) });
   const { data: followups } = useQuery({ queryKey: ["followups"], queryFn: api.followups, refetchInterval: 60_000 });
-  const [tab, setTab] = useState<"board" | "followups">("board");
+  const [tab, setTab] = useState<"board" | "followups" | "insights">("board");
   const [dragging, setDragging] = useState<JobSummary | null>(null);
   const due = new Map(
     (followups?.items ?? [])
@@ -106,9 +107,11 @@ export function Pipeline({ onOpenJob }: { onOpenJob: (id: number) => void }) {
           {jobs.length - closed.length} active{closed.length ? `, ${closed.length} closed` : ""}
         </span>
         <div className="flex-1" data-tauri-drag-region />
-        <Segmented value={tab} onChange={setTab} options={[{ value: "board", label: "Board" }, { value: "followups", label: due.size ? `Follow-ups (${due.size})` : "Follow-ups" }]} />
+        <Segmented value={tab} onChange={setTab} options={[{ value: "board", label: "Board" }, { value: "followups", label: due.size ? `Follow-ups (${due.size})` : "Follow-ups" }, { value: "insights", label: "Insights" }]} />
       </header>
-      {tab === "followups" ? (
+      {tab === "insights" ? (
+        <Insights />
+      ) : tab === "followups" ? (
         <FollowUps onOpenJob={onOpenJob} />
       ) : (
       <>

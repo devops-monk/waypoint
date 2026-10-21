@@ -81,6 +81,7 @@ pub fn run() {
             commands::latest_evaluation,
             commands::evaluate_job,
             commands::token_usage,
+            commands::insights,
             resume_cmds::resume_load,
             resume_cmds::resume_render,
             resume_cmds::resume_tailor,

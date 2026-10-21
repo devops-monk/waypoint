@@ -30,6 +30,7 @@ import type {
   Story,
   PrepState,
   Practice,
+  Insights,
 } from "./types";
 
 // One typed wrapper per Rust command. Argument names follow Tauri's camelCase convention.
@@ -66,6 +67,7 @@ export const api = {
   latestEvaluation: (jobId: number) => invoke<EvaluationView | null>("latest_evaluation", { jobId }),
   evaluateJob: (jobId: number) => invoke<EvaluationView>("evaluate_job", { jobId }),
   tokenUsage: () => invoke<UsageRow[]>("token_usage"),
+  insights: () => invoke<Insights>("insights"),
 
   resumeLoad: (jobId: number | null) => invoke<ResumeState>("resume_load", { jobId }),
   resumeRender: (doc: ResumeDoc, template: Template) => invoke<{ pages: string[]; issues: FactIssue[] }>("resume_render", { doc, template }),
