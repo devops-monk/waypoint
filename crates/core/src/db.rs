@@ -536,6 +536,61 @@ impl Db {
         Ok(())
     }
 
+    // ── Contacts ────────────────────────────────────────────────────────
+
+    /// Add or refresh connections. A re-import updates people by profile URL instead of
+    /// duplicating them. Returns (added, updated).
+    pub async fn import_contacts(&self, contacts: &[crate::contacts::Contact]) -> Result<(usize, usize)> {
+        let now = Utc::now().to_rfc3339();
+        let (mut added, mut updated) = (0, 0);
+        let mut tx = self.pool.begin().await?;
+        for c in contacts {
+            let existing: Option<i64> = if c.url.is_empty() {
+                sqlx::query_scalar("SELECT id FROM contact WHERE url = '' AND first_name = ? AND last_name = ? AND company = ?").bind(&c.first_name).bind(&c.last_name).bind(&c.company).fetch_optional(&mut *tx).await?
+            } else {
+                sqlx::query_scalar("SELECT id FROM contact WHERE url = ?").bind(&c.url).fetch_optional(&mut *tx).await?
+            };
+            let connected = c.connected_on.map(|d| d.to_string());
+            match existing {
+                Some(id) => {
+                    sqlx::query("UPDATE contact SET first_name = ?, last_name = ?, company = ?, position = ?, email = ?, connected_on = ?, imported_at = ? WHERE id = ?")
+                        .bind(&c.first_name).bind(&c.last_name).bind(&c.company).bind(&c.position).bind(&c.email).bind(&connected).bind(&now).bind(id)
+                        .execute(&mut *tx).await?;
+                    updated += 1;
+                }
+                None => {
+                    sqlx::query("INSERT INTO contact (first_name, last_name, company, position, email, url, connected_on, imported_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+                        .bind(&c.first_name).bind(&c.last_name).bind(&c.company).bind(&c.position).bind(&c.email).bind(&c.url).bind(&connected).bind(&now)
+                        .execute(&mut *tx).await?;
+                    added += 1;
+                }
+            }
+        }
+        tx.commit().await?;
+        Ok((added, updated))
+    }
+
+    pub async fn list_contacts(&self) -> Result<Vec<crate::contacts::Contact>> {
+        let rows = sqlx::query("SELECT * FROM contact ORDER BY company COLLATE NOCASE, last_name COLLATE NOCASE").fetch_all(&self.pool).await?;
+        Ok(rows
+            .iter()
+            .map(|r| crate::contacts::Contact {
+                id: r.get("id"),
+                first_name: r.get("first_name"),
+                last_name: r.get("last_name"),
+                company: r.get("company"),
+                position: r.get("position"),
+                email: r.get("email"),
+                url: r.get("url"),
+                connected_on: r.get::<Option<String>, _>("connected_on").and_then(|d| chrono::NaiveDate::parse_from_str(&d, "%Y-%m-%d").ok()),
+            })
+            .collect())
+    }
+
+    pub async fn clear_contacts(&self) -> Result<u64> {
+        Ok(sqlx::query("DELETE FROM contact").execute(&self.pool).await?.rows_affected())
+    }
+
     // ── Insights ────────────────────────────────────────────────────────
 
     pub async fn insights(&self, today: chrono::NaiveDate, weeks: usize) -> Result<crate::insights::Insights> {
@@ -832,6 +887,21 @@ mod tests {
         assert_eq!(db.list_practice(job).await.unwrap()[0].feedback["score"], 3);
         db.delete_story(id).await.unwrap();
         assert!(db.list_stories().await.unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn contacts_import_updates_by_url_and_clears() {
+        use crate::contacts::Contact;
+        let db = Db::in_memory().await.unwrap();
+        let ada = Contact { first_name: "Ada".into(), company: "Supabase".into(), url: "https://www.linkedin.com/in/ada".into(), ..Default::default() };
+        let no_url = Contact { first_name: "Bo".into(), company: "Lunar".into(), ..Default::default() };
+        assert_eq!(db.import_contacts(&[ada.clone(), no_url.clone()]).await.unwrap(), (2, 0));
+        let moved = Contact { company: "Lunar".into(), position: "Staff Engineer".into(), ..ada };
+        assert_eq!(db.import_contacts(&[moved, no_url]).await.unwrap(), (0, 2));
+        let all = db.list_contacts().await.unwrap();
+        assert_eq!(all.len(), 2);
+        assert!(all.iter().any(|c| c.first_name == "Ada" && c.company == "Lunar" && c.position == "Staff Engineer"));
+        assert_eq!(db.clear_contacts().await.unwrap(), 2);
     }
 
     #[tokio::test]

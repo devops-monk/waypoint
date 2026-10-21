@@ -1,5 +1,6 @@
 //! Waypoint domain core: models, storage, dedup and deterministic scoring.
 
+pub mod contacts;
 pub mod db;
 pub mod dedup;
 pub mod followup;

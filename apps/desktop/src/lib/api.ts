@@ -31,6 +31,8 @@ import type {
   PrepState,
   Practice,
   Insights,
+  Contact,
+  ContactMatch,
 } from "./types";
 
 // One typed wrapper per Rust command. Argument names follow Tauri's camelCase convention.
@@ -94,6 +96,13 @@ export const api = {
   prepBuild: (jobId: number) => invoke<PrepState>("prep_build", { jobId }),
   prepNotes: (jobId: number, done: string[], debrief: string) => invoke<void>("prep_notes", { jobId, done, debrief }),
   practiceAnswer: (jobId: number, question: string, answer: string) => invoke<Practice>("practice_answer", { jobId, question, answer }),
+
+  contactsImport: (path: string) => invoke<{ added: number; updated: number; without_company: number }>("contacts_import", { path }),
+  contactsList: () => invoke<Contact[]>("contacts_list"),
+  contactsClear: () => invoke<number>("contacts_clear"),
+  contactsForJob: (jobId: number) => invoke<ContactMatch[]>("contacts_for_job", { jobId }),
+  contactMessage: (jobId: number, contactId: number, ask: "referral" | "advice", notes: string) =>
+    invoke<{ subject: string; body: string }>("contact_message", { jobId, contactId, ask, notes }),
 
   letterLoad: (jobId: number) => invoke<LetterState>("letter_load", { jobId }),
   letterWrite: (jobId: number) => invoke<LetterState>("letter_write", { jobId }),

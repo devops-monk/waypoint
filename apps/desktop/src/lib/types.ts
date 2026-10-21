@@ -424,3 +424,19 @@ export interface Insights {
   weeks: { start: string; applied: number }[];
   fit: { heard_back_avg: number; heard_back_n: number; silent_avg: number; silent_n: number } | null;
 }
+
+export interface Contact {
+  id: number;
+  first_name: string;
+  last_name: string;
+  company: string;
+  position: string;
+  email: string;
+  url: string;
+  connected_on: string | null;
+}
+
+export interface ContactMatch {
+  contact: Contact;
+  strength: "exact" | "strong" | "weak";
+}

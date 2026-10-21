@@ -3,6 +3,7 @@
 
 pub mod cover;
 pub mod interview;
+pub mod outreach;
 pub mod followup;
 mod anthropic;
 mod openai;

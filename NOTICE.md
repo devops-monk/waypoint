@@ -10,6 +10,7 @@ Used as a reference for:
 - the Greenhouse, Lever, Ashby, Workday, SmartRecruiters, Workable, Recruitee, Personio, Teamtailor, Himalayas, Remote OK, Hacker News, Arbeitsagentur and Platsbanken providers (`crates/sources`)
 - the application status model and aliases (`crates/core/src/status.rs`)
 - the posting-legitimacy assessment in the evaluation prompt
+- the company-name matching and LinkedIn connections parsing (`crates/core/src/contacts.rs`, from `linkedin-join.mjs`)
 - the starter company list (`crates/sources/src/seed_boards.json`, derived from `templates/portals.example.yml`)
 
 "career-ops" is a trademark of its author. Waypoint is not affiliated with or endorsed by career-ops.

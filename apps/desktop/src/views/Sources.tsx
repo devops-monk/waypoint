@@ -8,6 +8,7 @@ import { Button, Field, IconButton, Input, Panel, Segmented, Toggle } from "../c
 import { api, errorMessage } from "../lib/api";
 import { SOURCE_LABEL, relativeTime } from "../lib/format";
 import type { Board } from "../lib/types";
+import { PeopleView } from "../components/People";
 
 function boardHealth(b: Board): { tone: "ok" | "warn" | "error" | "idle"; text: string } {
   if (b.last_error) return { tone: "error", text: b.last_error.includes("404") ? "Board not found. The company may have moved to another hiring system." : `Couldn't reach it: ${b.last_error}` };
@@ -204,6 +205,7 @@ export function Sources() {
   const { data: boards = [] } = useQuery({ queryKey: ["boards"], queryFn: api.listBoards });
   const { data: seeds = [] } = useQuery({ queryKey: ["seeds"], queryFn: api.seedBoards });
   const [mode, setMode] = useState<"link" | "search">("link");
+  const [tab, setTab] = useState<"companies" | "people">("companies");
   const [filter, setFilter] = useState("");
   const refresh = () => qc.invalidateQueries({ queryKey: ["boards"] });
 
@@ -224,9 +226,12 @@ export function Sources() {
       <header className="drag flex h-[52px] shrink-0 items-center gap-3 border-b border-hairline px-4" data-tauri-drag-region>
         <h1 className="text-headline font-semibold" data-tauri-drag-region>Companies</h1>
         <span className="text-callout text-ink-3" data-tauri-drag-region>Following {boards.filter((b) => b.enabled).length}</span>
+        <div className="flex-1" data-tauri-drag-region />
+        <Segmented value={tab} onChange={setTab} options={[{ value: "companies", label: "Companies" }, { value: "people", label: "People" }]} />
       </header>
       <div className="scroll flex-1">
         <div className="mx-auto flex max-w-[860px] flex-col gap-8 px-8 py-7">
+          {tab === "people" ? <PeopleView /> : <>
           <section>
             <div className="mb-3 flex items-center justify-between">
               <div>
@@ -311,6 +316,7 @@ export function Sources() {
               })}
             </div>
           </section>
+          </>}
         </div>
       </div>
     </div>

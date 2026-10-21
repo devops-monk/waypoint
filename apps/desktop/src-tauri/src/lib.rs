@@ -1,4 +1,5 @@
 mod commands;
+mod contacts_cmds;
 mod followup_cmds;
 mod interview_cmds;
 mod letter_cmds;
@@ -96,6 +97,11 @@ pub fn run() {
             followup_cmds::followup_set_off,
             followup_cmds::save_followup_settings,
             followup_cmds::followup_draft,
+            contacts_cmds::contacts_import,
+            contacts_cmds::contacts_list,
+            contacts_cmds::contacts_clear,
+            contacts_cmds::contacts_for_job,
+            contacts_cmds::contact_message,
             interview_cmds::stories_list,
             interview_cmds::story_save,
             interview_cmds::story_delete,

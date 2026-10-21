@@ -10,6 +10,7 @@ import { api, errorMessage } from "../lib/api";
 import { SOURCE_LABEL, ageInDays, formatSalary, humanize, relativeTime } from "../lib/format";
 import type { Evaluation, GateVerdict, Status } from "../lib/types";
 import { FitDial } from "./FitDial";
+import { PeopleForJob } from "./People";
 import { RouteTrail } from "./RouteTrail";
 import { Button, IconButton, Panel, SectionTitle, Tag, Textarea } from "./ui";
 
@@ -230,6 +231,8 @@ export function JobDetail({ jobId, onTriage, onOpenDocs, onPrepare }: { jobId: n
             </div>
           )}
         </Panel>
+
+        <PeopleForJob jobId={jobId} company={job.company} />
 
         <section className="mt-8">
           <SectionTitle action={notes !== (job.notes ?? "") ? <span className="flex items-center gap-1 text-caption text-ink-3">Saves when you click away</span> : job.notes ? <Check className="size-3.5 text-teal" /> : null}>
