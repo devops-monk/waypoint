@@ -2,6 +2,13 @@
 
 An honest, private job search copilot for macOS, Windows and Linux. It finds real jobs on company job boards, scores how well you fit using only facts from your profile, and tracks every application. Your data stays on your computer, and AI calls use your own key.
 
+**Download:** [waypoint.devops-monk.com](https://waypoint.devops-monk.com)
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/discover-dark.webp">
+  <img src="docs/screenshots/discover-light.webp" alt="Waypoint's Discover screen: new roles ranked by fit, with a fit score of 86 for a Senior Backend Engineer role at Supabase, its eligibility checks, four scored dimensions, strengths, gaps and the keywords the posting screens for">
+</picture>
+
 ## What works today
 
 - **Companies:** follow a company by pasting its careers-page link. Waypoint reads Greenhouse, Lever, Ashby, Workday, SmartRecruiters, Workable, Recruitee, Personio and Teamtailor boards, and offers 129 suggestions to start from. Boards that fail or go empty are flagged. For Workday and SmartRecruiters, which list jobs without descriptions, the description is fetched the first time you open a job.
@@ -24,6 +31,32 @@ An honest, private job search copilot for macOS, Windows and Linux. It finds rea
 - **Settings:** bring your own key for Claude, OpenAI or OpenRouter, or run free and fully local with Ollama. Keys live in the OS keychain. A usage panel shows token spend across every AI call.
 - **Backup and restore:** in Settings, save everything to one `.waypoint` file and restore it on any computer. Restoring checks the file first and keeps your current data as a dated copy.
 - **Everywhere:** ⌘K command palette, ⌘N to add any job by hand (for example from LinkedIn), ⌘1–7 to switch views, light and dark mode, and native window translucency on macOS and Windows.
+
+## Screenshots
+
+Shown with sample data.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/resume.webp" alt="Resume Studio: an editor beside a live preview of the tailored resume, with a banner confirming every fact traces back to the profile"><br><b>Resume Studio.</b> Tailor for a job, review every change, and export only once every fact checks out.</td>
+    <td width="50%"><img src="docs/screenshots/cover-letter.webp" alt="Cover letter screen: the reviewer's notes, what changed in the revision, and the posting's requirements marked matched, bridged or gap, beside a preview of the letter"><br><b>Cover letters.</b> A draft, an independent review, then a revision, with every requirement accounted for.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/pipeline.webp" alt="Pipeline board with columns from Saved through Hired"><br><b>Pipeline.</b> Drag roles from Saved to Hired.</td>
+    <td><img src="docs/screenshots/follow-ups.webp" alt="Follow-ups list grouped into Needs you now, Coming up and Gone quiet"><br><b>Follow-ups.</b> When to check in, reply or say thank you, with a drafted message.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/interview-prep.webp" alt="Interview prep pack: role focus, likely questions with talking points and a matched story, a checklist, questions to ask and a debrief"><br><b>Interview prep.</b> Likely questions, the story to tell for each, and honest answers for your gaps.</td>
+    <td><img src="docs/screenshots/story-bank.webp" alt="Story bank editor with Situation, Task, Action and Result fields for a drafted story"><br><b>Story bank.</b> Your experience as STAR stories, drafted from your profile for you to finish.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/insights.webp" alt="Insights: applications, reply rate, typical wait and interviews, a funnel, applications per week and reply rate by source"><br><b>Insights.</b> Who replies, how fast, and whether your fit score predicts it.</td>
+    <td><img src="docs/screenshots/people.webp" alt="A job showing two people the user knows at the company and a drafted referral request"><br><b>People you know.</b> Connections at each company, and an honest referral request.</td>
+  </tr>
+  <tr>
+    <td colspan="2"><img src="docs/screenshots/job-sources.webp" alt="Companies screen with job search sources: Remotive, Himalayas, Remote OK, Hacker News, Adzuna, Arbeitsagentur, Platsbanken and Jobnet"><br><b>Job sources.</b> Follow companies on ten hiring systems, or watch keyword searches on remote boards and national job sites.</td>
+  </tr>
+</table>
 
 ## Layout
 
